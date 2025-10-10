@@ -41,6 +41,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ThemeSettings(settingsViewModel)
+            NotificationSettings(settingsViewModel)
             BackupRestoreSettings(onBackupClick, onRestoreClick)
         }
     }
@@ -81,6 +82,26 @@ fun ThemeSettings(viewModel: SettingsViewModel) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun NotificationSettings(viewModel: SettingsViewModel) {
+    val usePushNotifications by viewModel.usePushNotifications.collectAsState()
+
+    Column {
+        Text("Notifications", style = MaterialTheme.typography.titleMedium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Use push notifications")
+            Switch(
+                checked = usePushNotifications,
+                onCheckedChange = { viewModel.setUsePushNotifications(it) }
+            )
         }
     }
 }

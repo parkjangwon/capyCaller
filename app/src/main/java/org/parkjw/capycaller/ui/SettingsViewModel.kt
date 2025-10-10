@@ -24,4 +24,16 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             userDataStore.saveTheme(theme)
         }
     }
+
+    val usePushNotifications: StateFlow<Boolean> = userDataStore.getUsePushNotifications.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = false
+    )
+
+    fun setUsePushNotifications(usePushNotifications: Boolean) {
+        viewModelScope.launch {
+            userDataStore.saveUsePushNotifications(usePushNotifications)
+        }
+    }
 }
