@@ -1,5 +1,9 @@
 # CapyCaller
 
+<p align="left">
+  <img src=".github/images/capyCallerLogo.png" alt="CapyCaller Logo" width="300"/>
+</p>
+
 CapyCaller is a simple yet powerful API client for Android that allows you to manage and execute API requests with ease.
 
 ## Features
