@@ -12,5 +12,6 @@ data class ApiItem(
     val headers: List<Pair<String, String>>,
     val queryParams: List<Pair<String, String>>,
     val bodyType: String,
-    val body: String
+    val body: String,
+    val isShortcut: Boolean = false
 ) : Parcelable

@@ -92,9 +92,9 @@ class MainActivity : ComponentActivity() {
                             apiItems = apiItems,
                             onAddApi = { navController.navigate("addApi") },
                             onApiClick = { apiItem -> navController.navigate("editApi/${apiItem.id}") },
-                            onExecuteApi = { executeApi(it) },
-                            onCopyApi = { apiItem -> apiViewModel.copyApi(apiItem) },
-                            onDeleteApi = { apiItem -> apiViewModel.deleteApi(apiItem) },
+                            onExecuteApis = { executeApis(it) },
+                            onDeleteApis = { apiViewModel.deleteApis(it) },
+                            onCopyApi = { apiViewModel.copyApi(it) },
                             onSettingsClick = { navController.navigate("settings") }
                         )
                     }
@@ -182,6 +182,19 @@ class MainActivity : ComponentActivity() {
                 is ApiResult.Error -> result.message
             }
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun executeApis(apiItems: List<ApiItem>) {
+        apiItems.forEach { apiItem ->
+            lifecycleScope.launch {
+                val result = apiCaller.call(apiItem)
+                val (title, content) = when (result) {
+                    is ApiResult.Success -> "Execution successful" to "API: ${apiItem.name}"
+                    is ApiResult.Error -> "Execution failed" to "API: ${apiItem.name} (Code: ${result.code})"
+                }
+                NotificationHelper.showNotification(applicationContext, title, content)
+            }
         }
     }
 }

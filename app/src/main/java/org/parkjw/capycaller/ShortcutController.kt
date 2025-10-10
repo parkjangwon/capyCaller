@@ -10,19 +10,23 @@ import org.parkjw.capycaller.data.ApiItem
 class ShortcutController(private val context: Context) {
 
     fun updateShortcuts(apiItems: List<ApiItem>) {
-        val shortcuts = apiItems.map {
-            val intent = Intent(context, TransparentActivity::class.java).apply {
-                action = Intent.ACTION_VIEW
-                data = Uri.parse("myapp://apicall/${it.id}")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            }
+        val maxShortcuts = ShortcutManagerCompat.getMaxShortcutCountPerActivity(context)
+        val shortcuts = apiItems
+            .filter { it.isShortcut }
+            .take(maxShortcuts)
+            .map { apiItem ->
+                val intent = Intent(context, TransparentActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    data = Uri.parse("myapp://apicall/${apiItem.id}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                }
 
-            ShortcutInfoCompat.Builder(context, it.id)
-                .setShortLabel(it.name)
-                .setLongLabel(it.name)
-                .setIntent(intent)
-                .build()
-        }
+                ShortcutInfoCompat.Builder(context, apiItem.id)
+                    .setShortLabel(apiItem.name)
+                    .setLongLabel(apiItem.name)
+                    .setIntent(intent)
+                    .build()
+            }
         ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts)
     }
 }

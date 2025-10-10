@@ -31,6 +31,7 @@ fun ApiEditScreen(
     var name by remember(apiItem) { mutableStateOf(apiItem?.name ?: "") }
     var url by remember(apiItem) { mutableStateOf(apiItem?.url ?: "") }
     var method by remember(apiItem) { mutableStateOf(apiItem?.method ?: "GET") }
+    var isShortcut by remember(apiItem) { mutableStateOf(apiItem?.isShortcut ?: false) }
 
     val queryParams = remember { mutableStateListOf<Pair<String, String>>().also { it.addAll(apiItem?.queryParams ?: emptyList()) } }
     val headers = remember { mutableStateListOf<Pair<String, String>>().also { it.addAll(apiItem?.headers ?: emptyList()) } }
@@ -47,7 +48,8 @@ fun ApiEditScreen(
             headers = headers.toList(),
             queryParams = queryParams.toList(),
             bodyType = bodyType,
-            body = body
+            body = body,
+            isShortcut = isShortcut
         ) ?: ApiItem(
             id = apiItem?.id ?: java.util.UUID.randomUUID().toString(),
             name = name,
@@ -56,7 +58,8 @@ fun ApiEditScreen(
             headers = headers.toList(),
             queryParams = queryParams.toList(),
             bodyType = bodyType,
-            body = body
+            body = body,
+            isShortcut = isShortcut
         )
     }
 
@@ -140,6 +143,11 @@ fun ApiEditScreen(
                         )
                     }
                 }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = isShortcut, onCheckedChange = { isShortcut = it })
+                Text("Add to shortcuts")
             }
             
             Spacer(modifier = Modifier.height(8.dp))

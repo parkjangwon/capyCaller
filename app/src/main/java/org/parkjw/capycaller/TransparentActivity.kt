@@ -14,38 +14,38 @@ class TransparentActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             try {
-                val data = intent.data
-                if (data != null && data.scheme == "myapp" && data.host == "apicall") {
-                    val apiId = data.lastPathSegment
-                    if (apiId != null) {
-                        val repository = ApiRepository(application)
-                        val apiItems = repository.getApiItems()
-                        val apiItem = apiItems.find { it.id == apiId }
+                val apiId: String? = if (intent.data?.scheme == "myapp" && intent.data?.host == "apicall") {
+                    intent.data?.lastPathSegment
+                } else {
+                    intent.getStringExtra("api_id")
+                }
 
-                        if (apiItem != null) {
-                            val apiCaller = ApiCaller()
-                            val result = apiCaller.call(apiItem)
-                            val (title, content) = when (result) {
-                                is ApiResult.Success -> {
-                                    "Execution successful" to "API: ${apiItem.name}"
-                                }
-                                is ApiResult.Error -> {
-                                    val contentMessage = if (result.code != 0) {
-                                        "API: ${apiItem.name} (Code: ${result.code})"
-                                    } else {
-                                        "API: ${apiItem.name}"
-                                    }
-                                    "Execution failed" to contentMessage
-                                }
+                if (apiId != null) {
+                    val repository = ApiRepository(application)
+                    val apiItem = repository.getApiItems().find { it.id == apiId }
+
+                    if (apiItem != null) {
+                        val apiCaller = ApiCaller()
+                        val result = apiCaller.call(apiItem)
+                        val (title, content) = when (result) {
+                            is ApiResult.Success -> {
+                                "Execution successful" to "API: ${apiItem.name}"
                             }
-                            NotificationHelper.showNotification(applicationContext, title, content)
-                        } else {
-                            NotificationHelper.showNotification(applicationContext, "Execution failed", "API not found")
+                            is ApiResult.Error -> {
+                                val contentMessage = if (result.code != 0) {
+                                    "API: ${apiItem.name} (Code: ${result.code})"
+                                } else {
+                                    "API: ${apiItem.name}"
+                                }
+                                "Execution failed" to contentMessage
+                            }
                         }
+                        NotificationHelper.showNotification(applicationContext, title, content)
+                    } else {
+                        NotificationHelper.showNotification(applicationContext, "Execution failed", "API not found")
                     }
                 }
             } finally {
-                // Ensure the activity finishes even if an error occurs
                 finish()
             }
         }

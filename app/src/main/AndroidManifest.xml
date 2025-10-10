@@ -29,6 +29,45 @@
                 <data android:scheme="myapp" android:host="apicall" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".SingleApiWidgetProvider"
+            android:exported="false"
+            android:label="Single API">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/single_api_widget_info" />
+        </receiver>
+
+        <activity android:name=".SingleApiWidgetConfigureActivity" android:exported="true" android:theme="@style/Theme.Capycaller">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+        
+        <receiver
+            android:name=".ApiWidgetProvider"
+            android:exported="false"
+            android:label="Multi API">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/api_widget_info" />
+        </receiver>
+        
+        <activity android:name=".MultiApiWidgetConfigureActivity" android:exported="true" android:theme="@style/Theme.Capycaller">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
     </application>
 
 </manifest>

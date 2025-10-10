@@ -1,6 +1,8 @@
 package org.parkjw.capycaller
 
 import android.app.Application
+import android.widget.Toast
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,7 +38,17 @@ class ApiViewModel(application: Application) : AndroidViewModel(application) {
 
     fun addApi(apiItem: ApiItem) {
         viewModelScope.launch {
-            val updatedList = _apiItems.value + apiItem
+            var itemToSave = apiItem
+            if (apiItem.isShortcut) {
+                val maxShortcuts = ShortcutManagerCompat.getMaxShortcutCountPerActivity(getApplication())
+                val currentShortcutCount = _apiItems.value.count { it.isShortcut }
+                if (currentShortcutCount >= maxShortcuts) {
+                    itemToSave = apiItem.copy(isShortcut = false)
+                    Toast.makeText(getApplication(), "Maximum number of shortcuts reached.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            val updatedList = _apiItems.value + itemToSave
             repository.saveApiItems(updatedList)
             _apiItems.value = updatedList
             shortcutController.updateShortcuts(updatedList)
@@ -45,8 +57,19 @@ class ApiViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateApi(apiItem: ApiItem) {
         viewModelScope.launch {
+            var itemToSave = apiItem
+            val originalItem = _apiItems.value.find { it.id == apiItem.id }
+            if (apiItem.isShortcut && originalItem?.isShortcut == false) {
+                val maxShortcuts = ShortcutManagerCompat.getMaxShortcutCountPerActivity(getApplication())
+                val currentShortcutCount = _apiItems.value.count { it.isShortcut }
+                if (currentShortcutCount >= maxShortcuts) {
+                    itemToSave = apiItem.copy(isShortcut = false)
+                    Toast.makeText(getApplication(), "Maximum number of shortcuts reached.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
             val updatedList = _apiItems.value.map {
-                if (it.id == apiItem.id) apiItem else it
+                if (it.id == itemToSave.id) itemToSave else it
             }
             repository.saveApiItems(updatedList)
             _apiItems.value = updatedList
@@ -57,6 +80,16 @@ class ApiViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteApi(apiItem: ApiItem) {
         viewModelScope.launch {
             val updatedList = _apiItems.value.filter { it.id != apiItem.id }
+            repository.saveApiItems(updatedList)
+            _apiItems.value = updatedList
+            shortcutController.updateShortcuts(updatedList)
+        }
+    }
+
+    fun deleteApis(apiItems: List<ApiItem>) {
+        viewModelScope.launch {
+            val idsToDelete = apiItems.map { it.id }.toSet()
+            val updatedList = _apiItems.value.filter { it.id !in idsToDelete }
             repository.saveApiItems(updatedList)
             _apiItems.value = updatedList
             shortcutController.updateShortcuts(updatedList)
@@ -74,7 +107,8 @@ class ApiViewModel(application: Application) : AndroidViewModel(application) {
 
             val newApiItem = apiItem.copy(
                 id = java.util.UUID.randomUUID().toString(),
-                name = newName
+                name = newName,
+                isShortcut = false
             )
 
             val updatedList = _apiItems.value + newApiItem
