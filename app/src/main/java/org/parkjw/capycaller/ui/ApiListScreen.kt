@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
@@ -90,7 +91,7 @@ fun ApiListItem(
                         onClick = { onCopy(apiItem); showMenu = false },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Copy") // Placeholder Icon
+                        Icon(Icons.Filled.ContentCopy, contentDescription = "Copy")
                         Spacer(Modifier.width(8.dp))
                         Text("Copy")
                     }
