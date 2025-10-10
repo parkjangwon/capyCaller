@@ -88,11 +88,9 @@ class MainActivity : ComponentActivity() {
                     composable("addApi") {
                         ApiEditScreen(
                             apiItem = null,
-                            onSave = {
-                                apiViewModel.addApi(it)
-                                navController.popBackStack()
-                            },
-                            onExecute = { executeApi(it) }
+                            onSave = { apiViewModel.addApi(it) },
+                            onExecute = { executeApi(it) },
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                     composable("editApi/{apiId}") { backStackEntry ->
@@ -100,11 +98,9 @@ class MainActivity : ComponentActivity() {
                         val apiItem = apiViewModel.getApiItem(apiId)
                         ApiEditScreen(
                             apiItem = apiItem,
-                            onSave = {
-                                apiViewModel.updateApi(it)
-                                navController.popBackStack()
-                            },
-                            onExecute = { executeApi(it) }
+                            onSave = { apiViewModel.updateApi(it) },
+                            onExecute = { executeApi(it) },
+                            onNavigateBack = { navController.popBackStack() }
                         )
                     }
                     composable("settings") {

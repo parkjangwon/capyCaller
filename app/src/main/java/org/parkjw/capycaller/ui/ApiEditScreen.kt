@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,7 @@ fun ApiEditScreen(
     apiItem: ApiItem?,
     onSave: (ApiItem) -> Unit,
     onExecute: (ApiItem) -> Unit,
+    onNavigateBack: () -> Unit
 ) {
     var name by remember(apiItem) { mutableStateOf(apiItem?.name ?: "") }
     var url by remember(apiItem) { mutableStateOf(apiItem?.url ?: "") }
@@ -56,25 +60,24 @@ fun ApiEditScreen(
         )
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            if (name.isNotBlank() || url.isNotBlank()) {
+                onSave(buildApiItem())
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(if (apiItem == null) "Add API" else "Edit API") })
-        },
-        bottomBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.End
-            ) {
-                OutlinedButton(
-                    modifier = Modifier.padding(end = 8.dp),
-                    onClick = { onExecute(buildApiItem()) }
-                ) {
-                    Text("Execute")
+            TopAppBar(
+                title = { Text(if (apiItem == null) "Add API" else "Edit API") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 }
-                Button(onClick = { onSave(buildApiItem()) }) {
-                    Text("Save")
-                }
-            }
+            )
         }
     ) { padding ->
         Column(
@@ -95,7 +98,12 @@ fun ApiEditScreen(
                 value = url,
                 onValueChange = { url = it },
                 label = { Text("URL") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    IconButton(onClick = { onExecute(buildApiItem()) }) {
+                        Icon(Icons.Filled.Send, contentDescription = "Execute")
+                    }
+                }
             )
 
             var methodMenuExpanded by remember { mutableStateOf(false) }
