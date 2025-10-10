@@ -2,5 +2,5 @@
 <Button xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_button"
     android:layout_width="match_parent"
-    android.text="API Name"
+    android:text="API Name"
     android:layout_height="wrap_content" />
