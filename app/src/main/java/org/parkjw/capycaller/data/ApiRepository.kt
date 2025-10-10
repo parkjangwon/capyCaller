@@ -26,8 +26,4 @@ class ApiRepository(context: Context) {
             putString("api_items", json)
         }
     }
-
-    fun getApiItem(id: String): ApiItem? {
-        return getApiItems().find { it.id == id }
-    }
 }

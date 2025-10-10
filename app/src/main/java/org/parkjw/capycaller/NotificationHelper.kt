@@ -1,6 +1,5 @@
 package org.parkjw.capycaller
 
-import android.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -31,7 +30,7 @@ object NotificationHelper {
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             // Use a system-guaranteed icon to prevent resource issues.
-            .setSmallIcon(R.drawable.ic_dialog_info)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(content)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
