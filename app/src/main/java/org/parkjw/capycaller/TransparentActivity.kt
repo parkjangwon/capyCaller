@@ -2,55 +2,50 @@ package org.parkjw.capycaller
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.parkjw.capycaller.data.ApiRepository
 import org.parkjw.capycaller.data.ApiResult
 
 class TransparentActivity : ComponentActivity() {
 
-    private val repository by lazy { ApiRepository(this) }
-    private val apiCaller by lazy { ApiCaller() }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        CoroutineScope(Dispatchers.Main).launch {
-            var title: String? = null
-            var content: String? = null
-
+        lifecycleScope.launch {
             try {
                 val data = intent.data
-                if (data != null) {
+                if (data != null && data.scheme == "myapp" && data.host == "apicall") {
                     val apiId = data.lastPathSegment
                     if (apiId != null) {
-                        val apiItem = withContext(Dispatchers.IO) { repository.getApiItem(apiId) }
+                        val repository = ApiRepository(application)
+                        val apiItems = repository.getApiItems()
+                        val apiItem = apiItems.find { it.id == apiId }
+
                         if (apiItem != null) {
-                            val result = withContext(Dispatchers.IO) { apiCaller.call(apiItem) }
-                            when (result) {
+                            val apiCaller = ApiCaller()
+                            val result = apiCaller.call(apiItem)
+                            val (title, content) = when (result) {
                                 is ApiResult.Success -> {
-                                    title = "'${apiItem.name}' executed"
-                                    content = "The request was processed normally."
+                                    "Execution successful" to "API: ${apiItem.name}"
                                 }
                                 is ApiResult.Error -> {
-                                    title = "Failed to execute '${apiItem.name}'"
-                                    content = result.message
+                                    val contentMessage = if (result.code != 0) {
+                                        "API: ${apiItem.name} (Code: ${result.code})"
+                                    } else {
+                                        "API: ${apiItem.name}"
+                                    }
+                                    "Execution failed" to contentMessage
                                 }
                             }
+                            NotificationHelper.showNotification(applicationContext, title, content)
                         } else {
-                            title = "Error"
-                            content = "API not found."
+                            NotificationHelper.showNotification(applicationContext, "Execution failed", "API not found")
                         }
                     }
                 }
             } finally {
-                if (title != null && content != null) {
-                    NotificationHelper.showNotification(this@TransparentActivity, title, content)
-                }
-                // Disable exit animation and finish the activity
-                overridePendingTransition(0, 0)
+                // Ensure the activity finishes even if an error occurs
                 finish()
             }
         }

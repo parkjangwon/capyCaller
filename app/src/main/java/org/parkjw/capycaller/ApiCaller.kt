@@ -50,13 +50,13 @@ class ApiCaller {
 
             client.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
-                    ApiResult.Success(response.body?.string() ?: "Empty response")
+                    ApiResult.Success(response.code, response.body?.string() ?: "Empty response")
                 } else {
-                    ApiResult.Error("Error: ${response.code} ${response.message} - ${response.body?.string()}")
+                    ApiResult.Error(response.code, "${response.message} - ${response.body?.string()}")
                 }
             }
         } catch (e: Exception) {
-            ApiResult.Error(e.message ?: "Unknown error")
+            ApiResult.Error(0, e.message ?: "Unknown error")
         }
     }
 }

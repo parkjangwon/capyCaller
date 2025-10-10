@@ -62,4 +62,33 @@ class ApiViewModel(application: Application) : AndroidViewModel(application) {
             shortcutController.updateShortcuts(updatedList)
         }
     }
+
+    fun copyApi(apiItem: ApiItem) {
+        viewModelScope.launch {
+            var newName = "${apiItem.name} Copy"
+            var counter = 2
+            while (_apiItems.value.any { it.name == newName }) {
+                newName = "${apiItem.name} Copy $counter"
+                counter++
+            }
+
+            val newApiItem = apiItem.copy(
+                id = java.util.UUID.randomUUID().toString(),
+                name = newName
+            )
+
+            val updatedList = _apiItems.value + newApiItem
+            repository.saveApiItems(updatedList)
+            _apiItems.value = updatedList
+            shortcutController.updateShortcuts(updatedList)
+        }
+    }
+
+    fun restoreApis(restoredApis: List<ApiItem>) {
+        viewModelScope.launch {
+            repository.saveApiItems(restoredApis)
+            _apiItems.value = restoredApis
+            shortcutController.updateShortcuts(restoredApis)
+        }
+    }
 }

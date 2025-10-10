@@ -1,5 +1,4 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.parkjw.capycaller">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -21,9 +20,7 @@
         <activity
             android:name=".TransparentActivity"
             android:exported="true"
-            android:theme="@style/Theme.Capycaller.Transparent"
-            android:taskAffinity=".transparent"
-            android:launchMode="singleTask">
+            android:theme="@style/Theme.Capycaller.Transparent">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
