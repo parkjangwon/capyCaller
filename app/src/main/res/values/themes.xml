@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Capycaller" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Theme for the transparent activity with no animation -->
+    <style name="Theme.Capycaller.Transparent" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@style/NoAnimation</item>
+    </style>
+
+    <style name="NoAnimation">
+        <item name="android:windowEnterAnimation">@null</item>
+        <item name="android:windowExitAnimation">@null</item>
+    </style>
+</resources>

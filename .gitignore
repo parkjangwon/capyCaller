@@ -1,0 +1,32 @@
+# Gradle files
+.gradle
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# IDE files
+.idea/
+*.iml
+*.hprof
+
+# Mac files
+.DS_Store
+
+# APK files
+*.apk
+*.aab
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google services file downloaded from Firebase Console
+google-services.json
+
+# Crashlytics generated file
+app/fabric.properties
+
+# Captures
+captures/
+.cxx/
