@@ -27,7 +27,11 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,9 +45,15 @@ import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
 import org.parkjw.capycaller.ui.theme.getHttpMethodColor
 import java.io.IOException
+import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.transform.OutputKeys
+import javax.xml.transform.TransformerFactory
+import javax.xml.transform.dom.DOMSource
+import javax.xml.transform.stream.StreamResult
 
 fun toCurlCommand(apiItem: ApiItem): String {
     val curl = StringBuilder("curl")
@@ -73,6 +83,110 @@ fun toCurlCommand(apiItem: ApiItem): String {
     }
 
     return curl.toString()
+}
+
+fun prettyPrintXml(xml: String): String {
+    return try {
+        val document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(xml.byteInputStream())
+        val transformer = TransformerFactory.newInstance().newTransformer()
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes")
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2")
+        val writer = StringWriter()
+        transformer.transform(DOMSource(document.documentElement), StreamResult(writer))
+        writer.toString()
+    } catch (e: Exception) {
+        xml // Return original on error
+    }
+}
+
+fun getAnnotatedSyntaxHighlightedString(code: String, type: String): AnnotatedString {
+    return buildAnnotatedString {
+        when {
+            type.contains("json", ignoreCase = true) -> {
+                val regex = "\"([^\"]*)\":|(\"[^\"]*\")|([\\d.]+)|(\\[|\\]|\\{|\\})|(true|false)|(null)".toRegex()
+                val keyColor = Color(0xFF9876AA)
+                val stringColor = Color(0xFF6A8759)
+                val numberColor = Color(0xFF6897BB)
+                val keywordColor = Color(0xFFCC7832)
+
+                var lastIndex = 0
+                regex.findAll(code).forEach { matchResult ->
+                    val startIndex = matchResult.range.first
+                    val endIndex = matchResult.range.last + 1
+
+                    if (startIndex > lastIndex) {
+                        append(code.substring(lastIndex, startIndex))
+                    }
+
+                    val (key, string, number, bracket, boolean, nullVal) = matchResult.destructured
+
+                    val (text, style) = when {
+                        key.isNotEmpty() -> matchResult.value to SpanStyle(color = keyColor, fontWeight = FontWeight.Bold)
+                        string.isNotEmpty() -> matchResult.value to SpanStyle(color = stringColor)
+                        number.isNotEmpty() -> matchResult.value to SpanStyle(color = numberColor)
+                        boolean.isNotEmpty() -> matchResult.value to SpanStyle(color = keywordColor, fontWeight = FontWeight.Bold)
+                        nullVal.isNotEmpty() -> matchResult.value to SpanStyle(color = keywordColor, fontWeight = FontWeight.Bold)
+                        bracket.isNotEmpty() -> matchResult.value to SpanStyle(color = Color.Gray)
+                        else -> matchResult.value to SpanStyle()
+                    }
+                    withStyle(style) {
+                        append(text)
+                    }
+                    lastIndex = endIndex
+                }
+                if (lastIndex < code.length) {
+                    append(code.substring(lastIndex))
+                }
+            }
+            type.contains("xml", ignoreCase = true) -> {
+                val xmlRegex = "(<!--.*?-->)|(<\\/?[\\w:.-]+)|(\\s[\\w:.-]+=)|(\"[^\"]*\")|([\\/>?])".toRegex()
+                val tagColor = Color(0xFFE8926B)
+                val attributeColor = Color(0xFF9876AA)
+                val stringColor = Color(0xFF6A8759)
+                val commentColor = Color(0xFF808080)
+
+                var lastIndex = 0
+                xmlRegex.findAll(code).forEach { matchResult ->
+                    val startIndex = matchResult.range.first
+                    val endIndex = matchResult.range.last + 1
+
+                    if (startIndex > lastIndex) {
+                        append(code.substring(lastIndex, startIndex))
+                    }
+
+                    val (comment, tag, attribute, attrValue, bracket) = matchResult.destructured
+
+                    val (text, style) = when {
+                        comment.isNotEmpty() -> matchResult.value to SpanStyle(color = commentColor, fontStyle = FontStyle.Italic)
+                        tag.isNotEmpty() -> matchResult.value to SpanStyle(color = tagColor, fontWeight = FontWeight.Bold)
+                        attribute.isNotEmpty() -> matchResult.value to SpanStyle(color = attributeColor)
+                        attrValue.isNotEmpty() -> matchResult.value to SpanStyle(color = stringColor)
+                        bracket.isNotEmpty() -> matchResult.value to SpanStyle(color = Color.Gray)
+                        else -> matchResult.value to SpanStyle()
+                    }
+                    withStyle(style) {
+                        append(text)
+                    }
+                    lastIndex = endIndex
+                }
+                if (lastIndex < code.length) {
+                    append(code.substring(lastIndex))
+                }
+            }
+            else -> {
+                append(code)
+            }
+        }
+    }
+}
+
+private class SyntaxHighlightingVisualTransformation(private val syntaxType: String) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        return TransformedText(
+            getAnnotatedSyntaxHighlightedString(text.text, syntaxType),
+            OffsetMapping.Identity
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -397,73 +511,28 @@ fun FormattedBody(
     onShare: (String) -> Unit,
     onDownload: (String) -> Unit
 ) {
-    val prettyJson = if (contentType.contains("json", ignoreCase = true)) {
-        try {
-            val gson = GsonBuilder().setPrettyPrinting().create()
-            gson.toJson(JsonParser.parseString(data))
-        } catch (e: JsonSyntaxException) {
-            data // Not a valid json, return original data
-        } catch (e: Exception) {
-            data
-        }
-    } else {
-        data
+    val prettyData = when {
+        contentType.contains("json", ignoreCase = true) -> try {
+            GsonBuilder().setPrettyPrinting().create().toJson(JsonParser.parseString(data))
+        } catch (e: Exception) { data }
+        contentType.contains("xml", ignoreCase = true) -> prettyPrintXml(data)
+        else -> data
     }
 
-    val annotatedString = buildAnnotatedString {
-        if (contentType.contains("json", ignoreCase = true) && prettyJson != data) {
-            val regex = "\"([^\"]*)\":|(\"[^\"]*\")|([\\d.]+)|(\\[|\\]|\\{|\\})|(true|false)|(null)".toRegex()
-
-            val keyColor = Color(0xFF9876AA)
-            val stringColor = Color(0xFF6A8759)
-            val numberColor = Color(0xFF6897BB)
-            val keywordColor = Color(0xFFCC7832)
-
-            var lastIndex = 0
-            regex.findAll(prettyJson).forEach { matchResult ->
-                val startIndex = matchResult.range.first
-                val endIndex = matchResult.range.last + 1
-
-                if (startIndex > lastIndex) {
-                    append(prettyJson.substring(lastIndex, startIndex))
-                }
-
-                val (key, string, number, bracket, boolean, nullVal) = matchResult.destructured
-
-                val (text, style) = when {
-                    key.isNotEmpty() -> matchResult.value to SpanStyle(color = keyColor, fontWeight = FontWeight.Bold)
-                    string.isNotEmpty() -> matchResult.value to SpanStyle(color = stringColor)
-                    number.isNotEmpty() -> matchResult.value to SpanStyle(color = numberColor)
-                    boolean.isNotEmpty() -> matchResult.value to SpanStyle(color = keywordColor, fontWeight = FontWeight.Bold)
-                    nullVal.isNotEmpty() -> matchResult.value to SpanStyle(color = keywordColor, fontWeight = FontWeight.Bold)
-                    bracket.isNotEmpty() -> matchResult.value to SpanStyle(color = Color.Gray)
-                    else -> matchResult.value to SpanStyle()
-                }
-                withStyle(style) {
-                    append(text)
-                }
-                lastIndex = endIndex
-            }
-            if (lastIndex < prettyJson.length) {
-                append(prettyJson.substring(lastIndex))
-            }
-        } else {
-            append(prettyJson)
-        }
-    }
+    val annotatedString = getAnnotatedSyntaxHighlightedString(prettyData, contentType)
     
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            IconButton(onClick = { onCopy(prettyJson) }) {
+            IconButton(onClick = { onCopy(prettyData) }) {
                 Icon(Icons.Filled.ContentCopy, contentDescription = "Copy")
             }
-            IconButton(onClick = { onShare(prettyJson) }) {
+            IconButton(onClick = { onShare(prettyData) }) {
                 Icon(Icons.Filled.Share, contentDescription = "Share")
             }
-            IconButton(onClick = { onDownload(prettyJson) }) {
+            IconButton(onClick = { onDownload(prettyData) }) {
                 Icon(Icons.Filled.Download, contentDescription = "Download")
             }
         }
@@ -498,7 +567,7 @@ fun BodyInput(body: String, bodyType: String, onBodyChange: (String) -> Unit, on
             onDismissRequest = { bodyTypeMenuExpanded = false },
             modifier = Modifier.exposedDropdownSize(matchTextFieldWidth = true)
         ) {
-            listOf("application/json", "text/plain", "application/x-www-form-urlencoded").forEach { selection ->
+            listOf("application/json", "text/plain", "application/x-www-form-urlencoded", "application/xml").forEach { selection ->
                 DropdownMenuItem(text = { Text(selection) }, onClick = {
                     onBodyTypeChange(selection)
                     bodyTypeMenuExpanded = false
@@ -510,7 +579,8 @@ fun BodyInput(body: String, bodyType: String, onBodyChange: (String) -> Unit, on
         value = body,
         onValueChange = onBodyChange,
         label = { Text("Request Body") },
-        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 150.dp)
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 150.dp),
+        visualTransformation = SyntaxHighlightingVisualTransformation(bodyType)
     )
 }
 
