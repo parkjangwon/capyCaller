@@ -12,11 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -25,11 +21,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
+import org.parkjw.capycaller.data.ApiSettings
+import org.parkjw.capycaller.data.UserDataStore
 import org.parkjw.capycaller.ui.ApiEditScreen
 import org.parkjw.capycaller.ui.ApiListScreen
+import org.parkjw.capycaller.ui.ApiSettingsViewModel
 import org.parkjw.capycaller.ui.SettingsScreen
 import org.parkjw.capycaller.ui.SettingsViewModel
 import org.parkjw.capycaller.ui.theme.CapycallerTheme
@@ -40,7 +40,7 @@ import java.util.Locale
 class MainActivity : ComponentActivity() {
 
     private val apiViewModel: ApiViewModel by viewModels()
-    private val apiCaller by lazy { ApiCaller() }
+    private lateinit var apiCaller: ApiCaller
     private var backPressedTime: Long = 0
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -62,6 +62,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        lifecycleScope.launch {
+            val userDataStore = UserDataStore(application)
+            val apiSettings = ApiSettings(
+                ignoreSslErrors = userDataStore.getIgnoreSslErrors.first(),
+                connectTimeout = userDataStore.getConnectTimeout.first(),
+                readTimeout = userDataStore.getReadTimeout.first(),
+                writeTimeout = userDataStore.getWriteTimeout.first(),
+                baseUrl = userDataStore.getBaseUrl.first(),
+                useCookieJar = userDataStore.getUseCookieJar.first()
+            )
+            apiCaller = ApiCaller(apiSettings)
+        }
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (backPressedTime + 2000 > System.currentTimeMillis()) {
@@ -78,6 +91,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val settingsViewModel: SettingsViewModel = viewModel()
+            val apiSettingsViewModel: ApiSettingsViewModel = viewModel()
             val theme by settingsViewModel.theme.collectAsState()
             val useDarkTheme = when (theme) {
                 "Light" -> false
@@ -135,6 +149,7 @@ class MainActivity : ComponentActivity() {
                         SettingsScreen(
                             onNavigateBack = { navController.popBackStack() },
                             settingsViewModel = settingsViewModel,
+                            apiSettingsViewModel = apiSettingsViewModel,
                             onBackupClick = { handleBackup() },
                             onRestoreClick = { handleRestore() }
                         )

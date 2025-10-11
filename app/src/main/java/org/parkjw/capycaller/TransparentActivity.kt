@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.parkjw.capycaller.data.ApiRepository
 import org.parkjw.capycaller.data.ApiResult
+import org.parkjw.capycaller.data.ApiSettings
 import org.parkjw.capycaller.data.UserDataStore
 
 class TransparentActivity : ComponentActivity() {
@@ -30,7 +31,7 @@ class TransparentActivity : ComponentActivity() {
                     val apiItem = repository.getApiItems().find { it.id == apiId }
 
                     if (apiItem != null) {
-                        val apiCaller = ApiCaller()
+                        val apiCaller = ApiCaller(ApiSettings())
                         val result = apiCaller.call(apiItem)
                         if (usePushNotifications) {
                             val (title, content) = when (result) {

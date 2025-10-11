@@ -3,22 +3,29 @@ package org.parkjw.capycaller.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit, 
+    onNavigateBack: () -> Unit,
     settingsViewModel: SettingsViewModel = viewModel(),
+    apiSettingsViewModel: ApiSettingsViewModel = viewModel(),
     onBackupClick: () -> Unit,
     onRestoreClick: () -> Unit
 ) {
@@ -37,11 +44,13 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             ThemeSettings(settingsViewModel)
             NotificationSettings(settingsViewModel)
+            ApiSettings(apiSettingsViewModel)
             BackupRestoreSettings(onBackupClick, onRestoreClick)
         }
     }
@@ -103,6 +112,101 @@ fun NotificationSettings(viewModel: SettingsViewModel) {
                 onCheckedChange = { viewModel.setUsePushNotifications(it) }
             )
         }
+    }
+}
+
+@Composable
+fun ApiSettings(viewModel: ApiSettingsViewModel) {
+    val ignoreSslErrors by viewModel.ignoreSslErrors.collectAsState()
+    val connectTimeout by viewModel.connectTimeout.collectAsState()
+    val readTimeout by viewModel.readTimeout.collectAsState()
+    val writeTimeout by viewModel.writeTimeout.collectAsState()
+    val baseUrl by viewModel.baseUrl.collectAsState()
+    val useCookieJar by viewModel.useCookieJar.collectAsState()
+    val sendNoCache by viewModel.sendNoCache.collectAsState()
+    val followRedirects by viewModel.followRedirects.collectAsState()
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("API Settings", style = MaterialTheme.typography.titleMedium)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Ignore SSL errors")
+            Switch(
+                checked = ignoreSslErrors,
+                onCheckedChange = { viewModel.setIgnoreSslErrors(it) }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Use cookie jar")
+            Switch(
+                checked = useCookieJar,
+                onCheckedChange = { viewModel.setUseCookieJar(it) }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Send no-cache header")
+            Switch(
+                checked = sendNoCache,
+                onCheckedChange = { viewModel.setSendNoCache(it) }
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Automatically follow redirects")
+            Switch(
+                checked = followRedirects,
+                onCheckedChange = { viewModel.setFollowRedirects(it) }
+            )
+        }
+
+        OutlinedTextField(
+            value = baseUrl,
+            onValueChange = { viewModel.setBaseUrl(it) },
+            label = { Text("Base URL") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = (connectTimeout / 1000).toString(),
+            onValueChange = { viewModel.setConnectTimeout((it.toLongOrNull() ?: 60) * 1000) },
+            label = { Text("Connect Timeout (s)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = (readTimeout / 1000).toString(),
+            onValueChange = { viewModel.setReadTimeout((it.toLongOrNull() ?: 60) * 1000) },
+            label = { Text("Read Timeout (s)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        OutlinedTextField(
+            value = (writeTimeout / 1000).toString(),
+            onValueChange = { viewModel.setWriteTimeout((it.toLongOrNull() ?: 60) * 1000) },
+            label = { Text("Write Timeout (s)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

@@ -1,43 +1,97 @@
 package org.parkjw.capycaller.data
 
-import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
+import android.app.Application
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.longPreferencesKey
 
-val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+private val Application.dataStore by preferencesDataStore(name = "settings")
 
-class UserDataStore(context: Context) {
+class UserDataStore(private val application: Application) {
 
-    private val dataStore = context.dataStore
+    private val themeKey = stringPreferencesKey("theme")
+    private val usePushNotificationsKey = booleanPreferencesKey("use_push_notifications")
+    private val ignoreSslErrorsKey = booleanPreferencesKey("ignore_ssl_errors")
+    private val connectTimeoutKey = longPreferencesKey("connect_timeout")
+    private val readTimeoutKey = longPreferencesKey("read_timeout")
+    private val writeTimeoutKey = longPreferencesKey("write_timeout")
+    private val baseUrlKey = stringPreferencesKey("base_url")
+    private val useCookieJarKey = booleanPreferencesKey("use_cookie_jar")
+    private val sendNoCacheKey = booleanPreferencesKey("send_no_cache")
+    private val followRedirectsKey = booleanPreferencesKey("follow_redirects")
 
-    companion object {
-        val THEME_KEY = stringPreferencesKey("theme")
-        val USE_PUSH_NOTIFICATIONS_KEY = booleanPreferencesKey("use_push_notifications")
-    }
 
-    val getTheme: Flow<String> = dataStore.data.map {
-        it[THEME_KEY] ?: "System"
-    }
+    val getTheme = application.dataStore.data.map { it[themeKey] ?: "System" }
+    val getUsePushNotifications = application.dataStore.data.map { it[usePushNotificationsKey] ?: true }
+    val getIgnoreSslErrors = application.dataStore.data.map { it[ignoreSslErrorsKey] ?: false }
+    val getConnectTimeout = application.dataStore.data.map { it[connectTimeoutKey] ?: 60000L }
+    val getReadTimeout = application.dataStore.data.map { it[readTimeoutKey] ?: 60000L }
+    val getWriteTimeout = application.dataStore.data.map { it[writeTimeoutKey] ?: 60000L }
+    val getBaseUrl = application.dataStore.data.map { it[baseUrlKey] ?: "" }
+    val getUseCookieJar = application.dataStore.data.map { it[useCookieJarKey] ?: true }
+    val getSendNoCache = application.dataStore.data.map { it[sendNoCacheKey] ?: true }
+    val getFollowRedirects = application.dataStore.data.map { it[followRedirectsKey] ?: true }
 
-    suspend fun saveTheme(theme: String) {
-        dataStore.edit {
-            it[THEME_KEY] = theme
+    suspend fun setTheme(theme: String) {
+        application.dataStore.edit {
+            it[themeKey] = theme
         }
     }
 
-    val getUsePushNotifications: Flow<Boolean> = dataStore.data.map {
-        it[USE_PUSH_NOTIFICATIONS_KEY] ?: false
+    suspend fun setUsePushNotifications(use: Boolean) {
+        application.dataStore.edit {
+            it[usePushNotificationsKey] = use
+        }
     }
 
-    suspend fun saveUsePushNotifications(usePushNotifications: Boolean) {
-        dataStore.edit {
-            it[USE_PUSH_NOTIFICATIONS_KEY] = usePushNotifications
+    suspend fun setIgnoreSslErrors(ignore: Boolean) {
+        application.dataStore.edit {
+            it[ignoreSslErrorsKey] = ignore
+        }
+    }
+
+    suspend fun setConnectTimeout(timeout: Long) {
+        application.dataStore.edit {
+            it[connectTimeoutKey] = timeout
+        }
+    }
+
+    suspend fun setReadTimeout(timeout: Long) {
+        application.dataStore.edit {
+            it[readTimeoutKey] = timeout
+        }
+    }
+
+    suspend fun setWriteTimeout(timeout: Long) {
+        application.dataStore.edit {
+            it[writeTimeoutKey] = timeout
+        }
+    }
+
+    suspend fun setBaseUrl(url: String) {
+        application.dataStore.edit {
+            it[baseUrlKey] = url
+        }
+    }
+
+    suspend fun setUseCookieJar(use: Boolean) {
+        application.dataStore.edit {
+            it[useCookieJarKey] = use
+        }
+    }
+
+    suspend fun setSendNoCache(send: Boolean) {
+        application.dataStore.edit {
+            it[sendNoCacheKey] = send
+        }
+    }
+
+    suspend fun setFollowRedirects(follow: Boolean) {
+        application.dataStore.edit {
+            it[followRedirectsKey] = follow
         }
     }
 }

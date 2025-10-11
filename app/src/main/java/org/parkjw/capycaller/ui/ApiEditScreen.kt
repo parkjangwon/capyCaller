@@ -45,6 +45,36 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+fun toCurlCommand(apiItem: ApiItem): String {
+    val curl = StringBuilder("curl")
+
+    // Method
+    curl.append(" -X ${apiItem.method}")
+
+    // URL and Query Params
+    val urlBuilder = StringBuilder(apiItem.url)
+    if (apiItem.queryParams.isNotEmpty()) {
+        urlBuilder.append("?")
+        apiItem.queryParams.filter { it.first.isNotBlank() }.forEachIndexed { index, pair ->
+            if (index > 0) urlBuilder.append("&")
+            urlBuilder.append("${pair.first}=${pair.second}")
+        }
+    }
+    curl.append(" '${urlBuilder}'")
+
+    // Headers
+    apiItem.headers.filter { it.first.isNotBlank() }.forEach { header ->
+        curl.append(" -H '${header.first}: ${header.second}'")
+    }
+
+    // Body
+    if (apiItem.body.isNotBlank()) {
+        curl.append(" -d '${apiItem.body.replace("'", "'\\''")}'")
+    }
+
+    return curl.toString()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApiEditScreen(
@@ -55,6 +85,7 @@ fun ApiEditScreen(
     onNavigateBack: () -> Unit
 ) {
     var name by remember(apiItem) { mutableStateOf(apiItem?.name ?: "") }
+    var memo by remember(apiItem) { mutableStateOf(apiItem?.memo ?: "") }
     var url by remember(apiItem) { mutableStateOf(apiItem?.url ?: "") }
     var method by remember(apiItem) { mutableStateOf(apiItem?.method ?: "GET") }
     var isShortcut by remember(apiItem) { mutableStateOf(apiItem?.isShortcut ?: false) }
@@ -65,10 +96,13 @@ fun ApiEditScreen(
     var bodyType by remember(apiItem) { mutableStateOf(apiItem?.bodyType ?: "application/json") }
     var body by remember(apiItem) { mutableStateOf(apiItem?.body ?: "") }
     var selectedTab by remember { mutableStateOf(0) }
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
 
     fun buildApiItem(): ApiItem {
         return apiItem?.copy(
             name = name,
+            memo = memo,
             url = url,
             method = method,
             headers = headers.filter { it.first.isNotBlank() }.toList(),
@@ -79,6 +113,7 @@ fun ApiEditScreen(
         ) ?: ApiItem(
             id = apiItem?.id ?: java.util.UUID.randomUUID().toString(),
             name = name,
+            memo = memo,
             url = url,
             method = method,
             headers = headers.filter { it.first.isNotBlank() }.toList(),
@@ -105,6 +140,15 @@ fun ApiEditScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        val curlCommand = toCurlCommand(buildApiItem())
+                        clipboardManager.setText(AnnotatedString(curlCommand))
+                        Toast.makeText(context, "Copied as cURL", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Filled.ContentCopy, contentDescription = "Copy as cURL")
+                    }
                 }
             )
         }
@@ -121,6 +165,14 @@ fun ApiEditScreen(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("API Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = memo,
+                    onValueChange = { memo = it },
+                    label = { Text("Memo") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))

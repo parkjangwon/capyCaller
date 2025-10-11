@@ -21,7 +21,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setTheme(theme: String) {
         viewModelScope.launch {
-            userDataStore.saveTheme(theme)
+            userDataStore.setTheme(theme)
         }
     }
 
@@ -33,7 +33,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun setUsePushNotifications(usePushNotifications: Boolean) {
         viewModelScope.launch {
-            userDataStore.saveUsePushNotifications(usePushNotifications)
+            userDataStore.setUsePushNotifications(usePushNotifications)
         }
     }
 }
