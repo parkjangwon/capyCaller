@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +29,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,6 +56,33 @@ fun ApiListScreen(
 ) {
     var selectedApiIds by remember { mutableStateOf(emptySet<String>()) }
     val isInSelectionMode = selectedApiIds.isNotEmpty()
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var confirmAction by remember { mutableStateOf<() -> Unit>({}) }
+    var confirmDialogTitle by remember { mutableStateOf("") }
+    var confirmDialogText by remember { mutableStateOf("") }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text(confirmDialogTitle) },
+            text = { Text(confirmDialogText) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmAction()
+                        showConfirmDialog = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     BackHandler(enabled = isInSelectionMode) {
         selectedApiIds = emptySet()
@@ -82,28 +111,43 @@ fun ApiListScreen(
                             Icon(Icons.Default.SelectAll, contentDescription = "Select all")
                         }
                         IconButton(onClick = {
-                            val selectedItems = apiItems.filter { it.id in selectedApiIds }
-                            onExecuteApis(selectedItems)
-                            selectedApiIds = emptySet()
+                            confirmDialogTitle = "Execute APIs"
+                            confirmDialogText = "Are you sure you want to execute ${selectedApiIds.size} APIs?"
+                            confirmAction = {
+                                val selectedItems = apiItems.filter { it.id in selectedApiIds }
+                                onExecuteApis(selectedItems)
+                                selectedApiIds = emptySet()
+                            }
+                            showConfirmDialog = true
                         }) {
                             Icon(Icons.Default.Send, contentDescription = "Execute selected")
                         }
                         IconButton(
                             onClick = {
-                                val selectedItem = apiItems.find { it.id == selectedApiIds.first() }
-                                if (selectedItem != null) {
-                                    onCopyApi(selectedItem)
+                                confirmDialogTitle = "Copy API"
+                                confirmDialogText = "Are you sure you want to copy this API?"
+                                confirmAction = {
+                                    val selectedItem = apiItems.find { it.id == selectedApiIds.first() }
+                                    if (selectedItem != null) {
+                                        onCopyApi(selectedItem)
+                                    }
+                                    selectedApiIds = emptySet()
                                 }
-                                selectedApiIds = emptySet()
+                                showConfirmDialog = true
                             },
                             enabled = selectedApiIds.size == 1
                         ) {
                             Icon(Icons.Default.ContentCopy, contentDescription = "Copy selected")
                         }
                         IconButton(onClick = {
-                            val selectedItems = apiItems.filter { it.id in selectedApiIds }
-                            onDeleteApis(selectedItems)
-                            selectedApiIds = emptySet()
+                            confirmDialogTitle = "Delete APIs"
+                            confirmDialogText = "Are you sure you want to delete ${selectedApiIds.size} APIs?"
+                            confirmAction = {
+                                val selectedItems = apiItems.filter { it.id in selectedApiIds }
+                                onDeleteApis(selectedItems)
+                                selectedApiIds = emptySet()
+                            }
+                            showConfirmDialog = true
                         }) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete selected")
                         }
@@ -180,6 +224,10 @@ fun ApiListItem(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = apiItem.url, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                if (apiItem.memo.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = apiItem.memo, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                }
             }
         }
     }

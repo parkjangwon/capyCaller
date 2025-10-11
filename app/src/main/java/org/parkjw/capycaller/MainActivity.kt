@@ -11,6 +11,9 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.*
 import androidx.core.content.ContextCompat
@@ -23,9 +26,11 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.parkjw.capycaller.data.AllSettings
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
 import org.parkjw.capycaller.data.ApiSettings
+import org.parkjw.capycaller.data.BackupData
 import org.parkjw.capycaller.data.UserDataStore
 import org.parkjw.capycaller.ui.ApiEditScreen
 import org.parkjw.capycaller.ui.ApiListScreen
@@ -42,6 +47,8 @@ class MainActivity : ComponentActivity() {
     private val apiViewModel: ApiViewModel by viewModels()
     private lateinit var apiCaller: ApiCaller
     private var backPressedTime: Long = 0
+    private lateinit var userDataStore: UserDataStore
+    private var restoreUri by mutableStateOf<Uri?>(null)
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -56,21 +63,23 @@ class MainActivity : ComponentActivity() {
     }
 
     private val openDocumentLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let { restoreData(it) }
+        restoreUri = uri
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        userDataStore = UserDataStore(application)
 
         lifecycleScope.launch {
-            val userDataStore = UserDataStore(application)
             val apiSettings = ApiSettings(
                 ignoreSslErrors = userDataStore.getIgnoreSslErrors.first(),
                 connectTimeout = userDataStore.getConnectTimeout.first(),
                 readTimeout = userDataStore.getReadTimeout.first(),
                 writeTimeout = userDataStore.getWriteTimeout.first(),
                 baseUrl = userDataStore.getBaseUrl.first(),
-                useCookieJar = userDataStore.getUseCookieJar.first()
+                useCookieJar = userDataStore.getUseCookieJar.first(),
+                sendNoCache = userDataStore.getSendNoCache.first(),
+                followRedirects = userDataStore.getFollowRedirects.first()
             )
             apiCaller = ApiCaller(apiSettings)
         }
@@ -90,6 +99,29 @@ class MainActivity : ComponentActivity() {
         askNotificationPermission()
 
         setContent {
+            if (restoreUri != null) {
+                AlertDialog(
+                    onDismissRequest = { restoreUri = null },
+                    title = { Text("Confirm Restore") },
+                    text = { Text("Are you sure you want to restore? This will overwrite your current APIs and settings.") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                restoreUri?.let { restoreData(it) }
+                                restoreUri = null
+                            }
+                        ) {
+                            Text("OK")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { restoreUri = null }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
             val settingsViewModel: SettingsViewModel = viewModel()
             val apiSettingsViewModel: ApiSettingsViewModel = viewModel()
             val theme by settingsViewModel.theme.collectAsState()
@@ -151,7 +183,7 @@ class MainActivity : ComponentActivity() {
                             settingsViewModel = settingsViewModel,
                             apiSettingsViewModel = apiSettingsViewModel,
                             onBackupClick = { handleBackup() },
-                            onRestoreClick = { handleRestore() }
+                            onRestoreClick = { openDocumentLauncher.launch("application/json") }
                         )
                     }
                 }
@@ -160,38 +192,85 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleBackup() {
-        val timeStamp = SimpleDateFormat("yyyyMMddHHmm", Locale.getDefault()).format(Date())
-        val fileName = "capyCaller-backup-$timeStamp.json"
-        createDocumentLauncher.launch(fileName)
-    }
+        lifecycleScope.launch {
+            val allSettings = AllSettings(
+                theme = userDataStore.getTheme.first(),
+                usePushNotifications = userDataStore.getUsePushNotifications.first(),
+                ignoreSslErrors = userDataStore.getIgnoreSslErrors.first(),
+                connectTimeout = userDataStore.getConnectTimeout.first(),
+                readTimeout = userDataStore.getReadTimeout.first(),
+                writeTimeout = userDataStore.getWriteTimeout.first(),
+                baseUrl = userDataStore.getBaseUrl.first(),
+                useCookieJar = userDataStore.getUseCookieJar.first(),
+                sendNoCache = userDataStore.getSendNoCache.first(),
+                followRedirects = userDataStore.getFollowRedirects.first()
+            )
+            val backupData = BackupData(
+                apiItems = apiViewModel.apiItems.value,
+                settings = allSettings
+            )
 
-    private fun handleRestore() {
-        openDocumentLauncher.launch("application/json")
+            val timeStamp = SimpleDateFormat("yyyyMMddHHmm", Locale.getDefault()).format(Date())
+            val fileName = "capyCaller-backup-$timeStamp.json"
+            createDocumentLauncher.launch(fileName)
+        }
     }
 
     private fun backupData(uri: Uri) {
-        try {
-            val json = Gson().toJson(apiViewModel.apiItems.value)
-            contentResolver.openOutputStream(uri)?.use {
-                it.write(json.toByteArray())
+        lifecycleScope.launch {
+            try {
+                val allSettings = AllSettings(
+                    theme = userDataStore.getTheme.first(),
+                    usePushNotifications = userDataStore.getUsePushNotifications.first(),
+                    ignoreSslErrors = userDataStore.getIgnoreSslErrors.first(),
+                    connectTimeout = userDataStore.getConnectTimeout.first(),
+                    readTimeout = userDataStore.getReadTimeout.first(),
+                    writeTimeout = userDataStore.getWriteTimeout.first(),
+                    baseUrl = userDataStore.getBaseUrl.first(),
+                    useCookieJar = userDataStore.getUseCookieJar.first(),
+                    sendNoCache = userDataStore.getSendNoCache.first(),
+                    followRedirects = userDataStore.getFollowRedirects.first()
+                )
+                val backupData = BackupData(
+                    apiItems = apiViewModel.apiItems.value,
+                    settings = allSettings
+                )
+                val json = Gson().toJson(backupData)
+                contentResolver.openOutputStream(uri)?.use {
+                    it.write(json.toByteArray())
+                }
+                Toast.makeText(this@MainActivity, "Backup successful", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
-            Toast.makeText(this, "Backup successful", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun restoreData(uri: Uri) {
-        try {
-            val json = contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
-            if (json != null) {
-                val type = object : TypeToken<List<ApiItem>>() {}.type
-                val restoredApis: List<ApiItem> = Gson().fromJson(json, type)
-                apiViewModel.restoreApis(restoredApis)
-                Toast.makeText(this, "Restore successful", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            try {
+                val json = contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
+                if (json != null) {
+                    val type = object : TypeToken<BackupData>() {}.type
+                    val backupData: BackupData = Gson().fromJson(json, type)
+                    apiViewModel.restoreApis(backupData.apiItems)
+
+                    userDataStore.setTheme(backupData.settings.theme)
+                    userDataStore.setUsePushNotifications(backupData.settings.usePushNotifications)
+                    userDataStore.setIgnoreSslErrors(backupData.settings.ignoreSslErrors)
+                    userDataStore.setConnectTimeout(backupData.settings.connectTimeout)
+                    userDataStore.setReadTimeout(backupData.settings.readTimeout)
+                    userDataStore.setWriteTimeout(backupData.settings.writeTimeout)
+                    userDataStore.setBaseUrl(backupData.settings.baseUrl)
+                    userDataStore.setUseCookieJar(backupData.settings.useCookieJar)
+                    userDataStore.setSendNoCache(backupData.settings.sendNoCache)
+                    userDataStore.setFollowRedirects(backupData.settings.followRedirects)
+
+                    Toast.makeText(this@MainActivity, "Restore successful", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@MainActivity, "Restore failed: ${e.message}", Toast.LENGTH_LONG).show()
             }
-        } catch (e: Exception) {
-            Toast.makeText(this, "Restore failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 

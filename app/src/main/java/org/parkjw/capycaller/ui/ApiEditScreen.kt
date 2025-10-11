@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
@@ -196,13 +197,15 @@ fun ApiEditScreen(
     apiResult: ApiResult?,
     onSave: (ApiItem) -> Unit,
     onExecute: (ApiItem) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    apiSettingsViewModel: ApiSettingsViewModel = viewModel()
 ) {
     var name by remember(apiItem) { mutableStateOf(apiItem?.name ?: "") }
     var memo by remember(apiItem) { mutableStateOf(apiItem?.memo ?: "") }
     var url by remember(apiItem) { mutableStateOf(apiItem?.url ?: "") }
     var method by remember(apiItem) { mutableStateOf(apiItem?.method ?: "GET") }
     var isShortcut by remember(apiItem) { mutableStateOf(apiItem?.isShortcut ?: false) }
+    val baseUrl by apiSettingsViewModel.baseUrl.collectAsState()
 
     val queryParams = remember { mutableStateListOf<Pair<String, String>>().also { it.addAll(apiItem?.queryParams ?: emptyList()) } }
     val headers = remember { mutableStateListOf<Pair<String, String>>().also { it.addAll(apiItem?.headers ?: emptyList()) } }
@@ -214,10 +217,16 @@ fun ApiEditScreen(
     val clipboardManager = LocalClipboardManager.current
 
     fun buildApiItem(): ApiItem {
+        val finalUrl = if (baseUrl.isNotBlank() && !url.startsWith("http")) {
+            baseUrl + url
+        } else {
+            url
+        }
+
         return apiItem?.copy(
             name = name,
             memo = memo,
-            url = url,
+            url = finalUrl,
             method = method,
             headers = headers.filter { it.first.isNotBlank() }.toList(),
             queryParams = queryParams.filter { it.first.isNotBlank() }.toList(),
@@ -228,7 +237,7 @@ fun ApiEditScreen(
             id = apiItem?.id ?: java.util.UUID.randomUUID().toString(),
             name = name,
             memo = memo,
-            url = url,
+            url = finalUrl,
             method = method,
             headers = headers.filter { it.first.isNotBlank() }.toList(),
             queryParams = queryParams.filter { it.first.isNotBlank() }.toList(),
@@ -303,7 +312,8 @@ fun ApiEditScreen(
                         }) {
                             Icon(Icons.Filled.Send, contentDescription = "Execute")
                         }
-                    }
+                    },
+                    placeholder = { Text(baseUrl) }
                 )
                 Spacer(Modifier.height(8.dp))
 
@@ -392,8 +402,8 @@ fun RequestTabs(
         Spacer(Modifier.height(8.dp))
 
         when (selectedTab) {
-            0 -> KeyValueInput(queryParams, keyLabel = "Parameter")
-            1 -> KeyValueInput(headers, keyLabel = "Header")
+            0 -> KeyValueInput(queryParams, keyLabel = "Key")
+            1 -> KeyValueInput(headers, keyLabel = "Key")
             2 -> BodyInput(body, bodyType, onBodyChange = onBodyChange, onBodyTypeChange = onBodyTypeChange)
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -118,13 +121,23 @@ fun NotificationSettings(viewModel: SettingsViewModel) {
 @Composable
 fun ApiSettings(viewModel: ApiSettingsViewModel) {
     val ignoreSslErrors by viewModel.ignoreSslErrors.collectAsState()
-    val connectTimeout by viewModel.connectTimeout.collectAsState()
-    val readTimeout by viewModel.readTimeout.collectAsState()
-    val writeTimeout by viewModel.writeTimeout.collectAsState()
-    val baseUrl by viewModel.baseUrl.collectAsState()
     val useCookieJar by viewModel.useCookieJar.collectAsState()
     val sendNoCache by viewModel.sendNoCache.collectAsState()
     val followRedirects by viewModel.followRedirects.collectAsState()
+
+    val baseUrlFromVm by viewModel.baseUrl.collectAsState()
+    var localBaseUrl by remember(baseUrlFromVm) { mutableStateOf(baseUrlFromVm) }
+
+    val connectTimeoutFromVm by viewModel.connectTimeout.collectAsState()
+    var localConnectTimeout by remember(connectTimeoutFromVm) { mutableStateOf((connectTimeoutFromVm / 1000).toString()) }
+
+    val readTimeoutFromVm by viewModel.readTimeout.collectAsState()
+    var localReadTimeout by remember(readTimeoutFromVm) { mutableStateOf((readTimeoutFromVm / 1000).toString()) }
+
+    val writeTimeoutFromVm by viewModel.writeTimeout.collectAsState()
+    var localWriteTimeout by remember(writeTimeoutFromVm) { mutableStateOf((writeTimeoutFromVm / 1000).toString()) }
+
+    val focusManager = LocalFocusManager.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("API Settings", style = MaterialTheme.typography.titleMedium)
@@ -178,34 +191,62 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
         }
 
         OutlinedTextField(
-            value = baseUrl,
-            onValueChange = { viewModel.setBaseUrl(it) },
+            value = localBaseUrl,
+            onValueChange = { localBaseUrl = it },
             label = { Text("Base URL") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged {
+                    if (!it.isFocused && localBaseUrl != baseUrlFromVm) {
+                        viewModel.setBaseUrl(localBaseUrl)
+                    }
+                },
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
 
         OutlinedTextField(
-            value = (connectTimeout / 1000).toString(),
-            onValueChange = { viewModel.setConnectTimeout((it.toLongOrNull() ?: 60) * 1000) },
+            value = localConnectTimeout,
+            onValueChange = { localConnectTimeout = it },
             label = { Text("Connect Timeout (s)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged {
+                    if (!it.isFocused && localConnectTimeout != (connectTimeoutFromVm / 1000).toString()) {
+                        viewModel.setConnectTimeout((localConnectTimeout.toLongOrNull() ?: 60) * 1000)
+                    }
+                },
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
 
         OutlinedTextField(
-            value = (readTimeout / 1000).toString(),
-            onValueChange = { viewModel.setReadTimeout((it.toLongOrNull() ?: 60) * 1000) },
+            value = localReadTimeout,
+            onValueChange = { localReadTimeout = it },
             label = { Text("Read Timeout (s)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged {
+                    if (!it.isFocused && localReadTimeout != (readTimeoutFromVm / 1000).toString()) {
+                        viewModel.setReadTimeout((localReadTimeout.toLongOrNull() ?: 60) * 1000)
+                    }
+                },
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
 
         OutlinedTextField(
-            value = (writeTimeout / 1000).toString(),
-            onValueChange = { viewModel.setWriteTimeout((it.toLongOrNull() ?: 60) * 1000) },
+            value = localWriteTimeout,
+            onValueChange = { localWriteTimeout = it },
             label = { Text("Write Timeout (s)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged {
+                    if (!it.isFocused && localWriteTimeout != (writeTimeoutFromVm / 1000).toString()) {
+                        viewModel.setWriteTimeout((localWriteTimeout.toLongOrNull() ?: 60) * 1000)
+                    }
+                },
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
         )
     }
 }
