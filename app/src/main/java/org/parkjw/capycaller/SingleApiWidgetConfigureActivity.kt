@@ -24,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiRepository
-import org.parkjw.capycaller.ui.theme.CapycallerTheme
+import org.parkjw.capycaller.ui.theme.CapyCallerTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 class SingleApiWidgetConfigureActivity : ComponentActivity() {
@@ -49,7 +49,7 @@ class SingleApiWidgetConfigureActivity : ComponentActivity() {
         val apiItems = repository.getApiItems()
 
         setContent {
-            CapycallerTheme {
+            CapyCallerTheme {
                 Scaffold(
                     topBar = {
                         TopAppBar(title = { Text("Select an API") })

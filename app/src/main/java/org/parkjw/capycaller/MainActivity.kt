@@ -37,7 +37,7 @@ import org.parkjw.capycaller.ui.ApiListScreen
 import org.parkjw.capycaller.ui.ApiSettingsViewModel
 import org.parkjw.capycaller.ui.SettingsScreen
 import org.parkjw.capycaller.ui.SettingsViewModel
-import org.parkjw.capycaller.ui.theme.CapycallerTheme
+import org.parkjw.capycaller.ui.theme.CapyCallerTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -131,7 +131,7 @@ class MainActivity : ComponentActivity() {
                 else -> isSystemInDarkTheme()
             }
 
-            CapycallerTheme(darkTheme = useDarkTheme) {
+            CapyCallerTheme(darkTheme = useDarkTheme) {
                 val navController = rememberNavController()
                 val apiItems by apiViewModel.apiItems.collectAsState()
 
@@ -211,7 +211,7 @@ class MainActivity : ComponentActivity() {
             )
 
             val timeStamp = SimpleDateFormat("yyyyMMddHHmm", Locale.getDefault()).format(Date())
-            val fileName = "capyCaller-backup-$timeStamp.json"
+            val fileName = "CapyCaller-backup-$timeStamp.json"
             createDocumentLauncher.launch(fileName)
         }
     }

@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "capyCaller"
+rootProject.name = "CapyCaller"
 include(":app")

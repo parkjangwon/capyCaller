@@ -224,7 +224,7 @@ fun ApiListItem(
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = apiItem.url, style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                if (apiItem.memo.isNotBlank()) {
+                if (apiItem.memo?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = apiItem.memo, style = MaterialTheme.typography.bodySmall, maxLines = 2)
                 }

@@ -7,9 +7,9 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
-        android:label="capyCaller"
+        android:label="CapyCaller"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Capycaller">
+        android:theme="@style/Theme.CapyCaller">
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -22,7 +22,7 @@
         <activity
             android:name=".TransparentActivity"
             android:exported="true"
-            android:theme="@style/Theme.Capycaller.Transparent">
+            android:theme="@style/Theme.CapyCaller.Transparent">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -43,7 +43,7 @@
                 android:resource="@xml/single_api_widget_info" />
         </receiver>
 
-        <activity android:name=".SingleApiWidgetConfigureActivity" android:exported="true" android:theme="@style/Theme.Capycaller">
+        <activity android:name=".SingleApiWidgetConfigureActivity" android:exported="true" android:theme="@style/Theme.CapyCaller">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>
@@ -62,7 +62,7 @@
                 android:resource="@xml/api_widget_info" />
         </receiver>
         
-        <activity android:name=".MultiApiWidgetConfigureActivity" android:exported="true" android:theme="@style/Theme.Capycaller">
+        <activity android:name="MultiApiWidgetConfigureActivity" android:exported="true" android:theme="@style/Theme.CapyCaller">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
             </intent-filter>

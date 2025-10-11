@@ -35,7 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.parkjw.capycaller.data.ApiRepository
-import org.parkjw.capycaller.ui.theme.CapycallerTheme
+import org.parkjw.capycaller.ui.theme.CapyCallerTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MultiApiWidgetConfigureActivity : ComponentActivity() {
@@ -61,7 +61,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
         val apiItems = repository.getApiItems()
 
         setContent {
-            CapycallerTheme {
+            CapyCallerTheme {
                 val selectedApiIds = remember { mutableStateOf(emptySet<String>()) }
                 val scope = rememberCoroutineScope()
                 val snackbarHostState = remember { SnackbarHostState() }
