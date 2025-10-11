@@ -1,5 +1,10 @@
 package org.parkjw.capycaller.ui
 
+import android.content.ContentValues
+import android.content.Intent
+import android.os.Environment
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -8,10 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -19,6 +21,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -29,10 +34,16 @@ import androidx.compose.ui.unit.sp
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
 import org.parkjw.capycaller.ui.theme.getHttpMethodColor
-import java.lang.Exception
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -188,7 +199,7 @@ fun ApiEditScreen(
                         onBodyChange = { body = it },
                         onBodyTypeChange = { bodyType = it }
                     )
-                    1 -> ResponseTab(apiResult)
+                    1 -> ResponseTab(apiResult, name)
                 }
             }
         }
@@ -223,7 +234,7 @@ fun RequestTabs(
 }
 
 @Composable
-fun ResponseTab(result: ApiResult?) {
+fun ResponseTab(result: ApiResult?, apiName: String) {
     if (result == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -237,6 +248,10 @@ fun ResponseTab(result: ApiResult?) {
     when (result) {
         is ApiResult.Success -> {
             var selectedTab by remember { mutableStateOf(0) }
+            val context = LocalContext.current
+            val clipboardManager = LocalClipboardManager.current
+            val coroutineScope = rememberCoroutineScope()
+
             Column {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text("Status: ${result.code}", fontWeight = FontWeight.Bold)
@@ -251,7 +266,59 @@ fun ResponseTab(result: ApiResult?) {
                 when (selectedTab) {
                     0 -> {
                         val contentType = result.headers.entries.find { it.key.equals("content-type", true) }?.value ?: ""
-                        FormattedBody(data = result.data, contentType = contentType)
+                        FormattedBody(
+                            data = result.data,
+                            contentType = contentType,
+                            onCopy = {
+                                clipboardManager.setText(AnnotatedString(it))
+                                Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+                            },
+                            onShare = {
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_TEXT, it)
+                                    type = "text/plain"
+                                }
+                                val shareIntent = Intent.createChooser(sendIntent, null)
+                                context.startActivity(shareIntent)
+                            },
+                            onDownload = { content ->
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    try {
+                                        val resolver = context.contentResolver
+
+                                        val (extension, mimeType) = when {
+                                            contentType.contains("json", true) -> "json" to "application/json"
+                                            contentType.contains("xml", true) -> "xml" to "application/xml"
+                                            else -> "txt" to "text/plain"
+                                        }
+
+                                        val timeStamp = SimpleDateFormat("yyyyMMddHHmm", Locale.getDefault()).format(Date())
+                                        val finalApiName = if (apiName.isNotBlank()) apiName else "untitled"
+                                        val fileName = "capyCaller-${finalApiName}-response-$timeStamp.$extension"
+
+                                        val contentValues = ContentValues().apply {
+                                            put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                                            put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                                        }
+                                        val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                                        uri?.let {
+                                            resolver.openOutputStream(it)?.use { outputStream ->
+                                                outputStream.write(content.toByteArray())
+                                            }
+                                            withContext(Dispatchers.Main) {
+                                                Toast.makeText(context, "Downloaded to Downloads folder", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } ?: throw IOException("Failed to create new MediaStore record.")
+                                    } catch (e: Exception) {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            }
+                        )
                     }
                     1 -> result.headers.forEach { (key, value) ->
                         Row {
@@ -271,7 +338,13 @@ fun ResponseTab(result: ApiResult?) {
 }
 
 @Composable
-fun FormattedBody(data: String, contentType: String) {
+fun FormattedBody(
+    data: String, 
+    contentType: String,
+    onCopy: (String) -> Unit,
+    onShare: (String) -> Unit,
+    onDownload: (String) -> Unit
+) {
     val prettyJson = if (contentType.contains("json", ignoreCase = true)) {
         try {
             val gson = GsonBuilder().setPrettyPrinting().create()
@@ -326,13 +399,29 @@ fun FormattedBody(data: String, contentType: String) {
             append(prettyJson)
         }
     }
-
-    SelectionContainer {
-        Text(
-            text = annotatedString,
-            fontFamily = FontFamily.Monospace,
-            modifier = Modifier.horizontalScroll(rememberScrollState())
-        )
+    
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            IconButton(onClick = { onCopy(prettyJson) }) {
+                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy")
+            }
+            IconButton(onClick = { onShare(prettyJson) }) {
+                Icon(Icons.Filled.Share, contentDescription = "Share")
+            }
+            IconButton(onClick = { onDownload(prettyJson) }) {
+                Icon(Icons.Filled.Download, contentDescription = "Download")
+            }
+        }
+        SelectionContainer {
+            Text(
+                text = annotatedString,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            )
+        }
     }
 }
 
