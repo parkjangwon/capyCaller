@@ -8,21 +8,27 @@ CapyCaller is a simple yet powerful API client for Android that allows you to ma
 
 ## Features
 
-- **API Management**: Create, edit, copy, and organize your API requests with a clean, intuitive UI.
+- **API Management**: Create, edit, copy, and organize your API requests with a clean, intuitive UI. Add optional memos to your APIs for better organization.
 - **Detailed Request Configuration**:
-    - Set API name, URL, and HTTP method (GET, POST, PUT, DELETE, PATCH).
-    - Add query parameters, headers, and request bodies.
-    - Supports `application/json`, `text/plain`, and `application/x-www-form-urlencoded` body types.
-- **Execute and Inspect**: Execute API requests within the app and view the responses.
+    - Supports all major HTTP methods: GET, POST, PUT, DELETE, PATCH.
+    - Easily configure query parameters, headers, and request bodies.
+    - Supports `application/json`, `text/plain`, `application/x-www-form-urlencoded`, and `application/xml` body types.
+    - **Syntax highlighting** for JSON and XML in both request and response bodies.
+- **Execute and Inspect**:
+    - A tabbed view to easily switch between API requests and responses.
+    - The response inspector displays the status code, time, headers, and a formatted body.
+    - Share, copy, or download response bodies directly from the app.
+    - **Copy as cURL**: Export your request to a cURL command.
 - **Home Screen Widgets**:
     - **Single API Widget**: Execute a specific API with a single tap from your home screen.
     - **Multi API Widget**: View and run a list of your APIs directly from a home screen widget.
 - **App Shortcuts**: APIs marked as shortcuts will appear when you long-press the app icon, providing quick access.
-- **Settings & Customization**:
-    - **Customizable Theme**: Choose between System, Light, and Dark themes.
-    - **Push Notification Control**: Enable or disable push notifications for background API executions (from widgets and shortcuts). Default is disabled.
-    - **Backup & Restore**: Easily back up your API list to a file and restore it later.
-- **Multi-Select Operations**: Long-press an item to enter multi-select mode to execute or delete multiple APIs at once.
+- **Advanced Settings & Customization**:
+    - **Theme**: Choose between System, Light, and Dark themes.
+    - **Notifications**: Control push notifications for background API executions.
+    - **Expert API Settings**: Configure options like SSL certificate validation, timeouts, Base URL, cookie handling, and caching behavior.
+    - **Full Backup & Restore**: Backup and restore all your APIs and application settings to a single file.
+- **Multi-Select Operations**: Long-press an item to enter multi-select mode. Confirmation dialogs prevent accidental execution or deletion of multiple APIs.
 
 ## Getting Started
 
