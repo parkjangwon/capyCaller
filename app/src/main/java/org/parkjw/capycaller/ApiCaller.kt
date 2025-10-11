@@ -9,54 +9,64 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
+import kotlin.system.measureTimeMillis
 
 class ApiCaller {
 
     private val client = OkHttpClient()
 
     suspend fun call(apiItem: ApiItem): ApiResult = withContext(Dispatchers.IO) {
-        try {
-            val urlBuilder = apiItem.url.toHttpUrlOrNull()?.newBuilder() ?: throw IllegalArgumentException("Invalid URL")
-            apiItem.queryParams.forEach {
-                urlBuilder.addQueryParameter(it.first, it.second)
-            }
-            val finalUrl = urlBuilder.build()
+        var result: ApiResult
+        val time = measureTimeMillis {
+            result = try {
+                val urlBuilder = apiItem.url.toHttpUrlOrNull()?.newBuilder() ?: throw IllegalArgumentException("Invalid URL")
+                apiItem.queryParams.forEach {
+                    urlBuilder.addQueryParameter(it.first, it.second)
+                }
+                val finalUrl = urlBuilder.build()
 
-            // Determine Content-Type: Use header if present, otherwise use bodyType
-            val contentType = apiItem.headers.find { it.first.equals("Content-Type", ignoreCase = true) }?.second ?: apiItem.bodyType
+                // Determine Content-Type: Use header if present, otherwise use bodyType
+                val contentType = apiItem.headers.find { it.first.equals("Content-Type", ignoreCase = true) }?.second ?: apiItem.bodyType
 
-            val requestBody = if (apiItem.method.equals("POST", ignoreCase = true) || apiItem.method.equals("PUT", ignoreCase = true)) {
-                apiItem.body.toRequestBody(contentType.toMediaTypeOrNull())
-            } else {
-                null
-            }
+                val requestBody = if (apiItem.method.equals("POST", ignoreCase = true) || apiItem.method.equals("PUT", ignoreCase = true)) {
+                    apiItem.body.toRequestBody(contentType.toMediaTypeOrNull())
+                } else {
+                    null
+                }
 
-            val request = Request.Builder()
-                .url(finalUrl)
-                .method(apiItem.method, requestBody)
-                .apply {
-                    apiItem.headers.forEach {
-                        // Avoid duplicating Content-Type header
-                        if (!it.first.equals("Content-Type", ignoreCase = true)) {
-                            addHeader(it.first, it.second)
+                val request = Request.Builder()
+                    .url(finalUrl)
+                    .method(apiItem.method, requestBody)
+                    .apply {
+                        apiItem.headers.forEach {
+                            // Avoid duplicating Content-Type header
+                            if (!it.first.equals("Content-Type", ignoreCase = true)) {
+                                addHeader(it.first, it.second)
+                            }
+                        }
+                        // Add the determined Content-Type header if it's not already added
+                        if (apiItem.headers.none { it.first.equals("Content-Type", ignoreCase = true) } && requestBody != null) {
+                            addHeader("Content-Type", contentType)
                         }
                     }
-                    // Add the determined Content-Type header if it's not already added
-                    if (apiItem.headers.none { it.first.equals("Content-Type", ignoreCase = true) } && requestBody != null) {
-                        addHeader("Content-Type", contentType)
+                    .build()
+
+                client.newCall(request).execute().use { response ->
+                    val headers = response.headers.toMultimap().mapValues { it.value.joinToString() }
+                    if (response.isSuccessful) {
+                        ApiResult.Success(response.code, response.body?.string() ?: "Empty response", headers, 0L)
+                    } else {
+                        ApiResult.Error(response.code, "${response.message} - ${response.body?.string()}")
                     }
                 }
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful) {
-                    ApiResult.Success(response.code, response.body?.string() ?: "Empty response")
-                } else {
-                    ApiResult.Error(response.code, "${response.message} - ${response.body?.string()}")
-                }
+            } catch (e: Exception) {
+                ApiResult.Error(0, e.message ?: "Unknown error")
             }
-        } catch (e: Exception) {
-            ApiResult.Error(0, e.message ?: "Unknown error")
+        }
+        if (result is ApiResult.Success) {
+            (result as ApiResult.Success).copy(time = time)
+        } else {
+            result
         }
     }
 }

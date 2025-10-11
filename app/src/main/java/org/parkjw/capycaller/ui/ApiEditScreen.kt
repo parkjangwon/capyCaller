@@ -1,29 +1,44 @@
 package org.parkjw.capycaller.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import com.google.gson.JsonSyntaxException
 import org.parkjw.capycaller.data.ApiItem
+import org.parkjw.capycaller.data.ApiResult
 import org.parkjw.capycaller.ui.theme.getHttpMethodColor
+import java.lang.Exception
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApiEditScreen(
     apiItem: ApiItem?,
+    apiResult: ApiResult?,
     onSave: (ApiItem) -> Unit,
     onExecute: (ApiItem) -> Unit,
     onNavigateBack: () -> Unit
@@ -45,8 +60,8 @@ fun ApiEditScreen(
             name = name,
             url = url,
             method = method,
-            headers = headers.toList(),
-            queryParams = queryParams.toList(),
+            headers = headers.filter { it.first.isNotBlank() }.toList(),
+            queryParams = queryParams.filter { it.first.isNotBlank() }.toList(),
             bodyType = bodyType,
             body = body,
             isShortcut = isShortcut
@@ -55,8 +70,8 @@ fun ApiEditScreen(
             name = name,
             url = url,
             method = method,
-            headers = headers.toList(),
-            queryParams = queryParams.toList(),
+            headers = headers.filter { it.first.isNotBlank() }.toList(),
+            queryParams = queryParams.filter { it.first.isNotBlank() }.toList(),
             bodyType = bodyType,
             body = body,
             isShortcut = isShortcut
@@ -87,83 +102,237 @@ fun ApiEditScreen(
             modifier = Modifier
                 .padding(padding)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("API Name") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = url,
-                onValueChange = { url = it },
-                label = { Text("URL") },
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(onClick = { onExecute(buildApiItem()) }) {
-                        Icon(Icons.Filled.Send, contentDescription = "Execute")
-                    }
-                }
-            )
-
-            var methodMenuExpanded by remember { mutableStateOf(false) }
-            ExposedDropdownMenuBox(
-                expanded = methodMenuExpanded,
-                onExpandedChange = { methodMenuExpanded = !methodMenuExpanded },
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
                 OutlinedTextField(
-                    value = "",
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Method") },
-                    leadingIcon = {
-                        Box(modifier = Modifier.padding(start = 8.dp)) {
-                            HttpMethodLabel(method = method)
-                        }
-                    },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodMenuExpanded) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth()
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("API Name") },
+                    modifier = Modifier.fillMaxWidth()
                 )
-                ExposedDropdownMenu(
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("URL") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = {
+                        IconButton(onClick = {
+                            onExecute(buildApiItem())
+                            selectedTab = 1
+                        }) {
+                            Icon(Icons.Filled.Send, contentDescription = "Execute")
+                        }
+                    }
+                )
+                Spacer(Modifier.height(8.dp))
+
+                var methodMenuExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
                     expanded = methodMenuExpanded,
-                    onDismissRequest = { methodMenuExpanded = false },
-                    modifier = Modifier.exposedDropdownSize(matchTextFieldWidth = true)
+                    onExpandedChange = { methodMenuExpanded = !methodMenuExpanded },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    listOf("GET", "POST", "PUT", "DELETE", "PATCH").forEach { selection ->
-                        DropdownMenuItem(
-                            text = { HttpMethodLabel(method = selection) },
-                            onClick = {
-                                method = selection
-                                methodMenuExpanded = false
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Method") },
+                        leadingIcon = {
+                            Box(modifier = Modifier.padding(start = 8.dp)) {
+                                HttpMethodLabel(method = method)
                             }
-                        )
+                        },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = methodMenuExpanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = methodMenuExpanded,
+                        onDismissRequest = { methodMenuExpanded = false },
+                        modifier = Modifier.exposedDropdownSize(matchTextFieldWidth = true)
+                    ) {
+                        listOf("GET", "POST", "PUT", "DELETE", "PATCH").forEach { selection ->
+                            DropdownMenuItem(
+                                text = { HttpMethodLabel(method = selection) },
+                                onClick = {
+                                    method = selection
+                                    methodMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isShortcut, onCheckedChange = { isShortcut = it })
+                    Text("Add to shortcuts")
+                }
+                Spacer(Modifier.height(8.dp))
+
+                TabRow(selectedTabIndex = selectedTab) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Request") })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Response") })
+                }
+                Spacer(Modifier.height(8.dp))
+
+                when (selectedTab) {
+                    0 -> RequestTabs(
+                        queryParams = queryParams,
+                        headers = headers,
+                        body = body,
+                        bodyType = bodyType,
+                        onBodyChange = { body = it },
+                        onBodyTypeChange = { bodyType = it }
+                    )
+                    1 -> ResponseTab(apiResult)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RequestTabs(
+    queryParams: SnapshotStateList<Pair<String, String>>,
+    headers: SnapshotStateList<Pair<String, String>>,
+    body: String,
+    bodyType: String,
+    onBodyChange: (String) -> Unit,
+    onBodyTypeChange: (String) -> Unit
+) {
+    var selectedTab by remember { mutableStateOf(0) }
+
+    Column {
+        TabRow(selectedTabIndex = selectedTab) {
+            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Params") })
+            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Headers") })
+            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Body") })
+        }
+        Spacer(Modifier.height(8.dp))
+
+        when (selectedTab) {
+            0 -> KeyValueInput(queryParams, keyLabel = "Parameter")
+            1 -> KeyValueInput(headers, keyLabel = "Header")
+            2 -> BodyInput(body, bodyType, onBodyChange = onBodyChange, onBodyTypeChange = onBodyTypeChange)
+        }
+    }
+}
+
+@Composable
+fun ResponseTab(result: ApiResult?) {
+    if (result == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("Execute an API call to see the response.")
+        }
+        return
+    }
+
+    when (result) {
+        is ApiResult.Success -> {
+            var selectedTab by remember { mutableStateOf(0) }
+            Column {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text("Status: ${result.code}", fontWeight = FontWeight.Bold)
+                    Text("Time: ${result.time}ms", fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+                TabRow(selectedTabIndex = selectedTab) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Body") })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Headers") })
+                }
+                Spacer(Modifier.height(8.dp))
+                when (selectedTab) {
+                    0 -> {
+                        val contentType = result.headers.entries.find { it.key.equals("content-type", true) }?.value ?: ""
+                        FormattedBody(data = result.data, contentType = contentType)
+                    }
+                    1 -> result.headers.forEach { (key, value) ->
+                        Row {
+                            Text("$key: ", fontWeight = FontWeight.Bold)
+                            Text(value)
+                        }
                     }
                 }
             }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = isShortcut, onCheckedChange = { isShortcut = it })
-                Text("Add to shortcuts")
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-
-            TabRow(selectedTabIndex = selectedTab) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Params") })
-                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Headers") })
-                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Body") })
-            }
-
-            when (selectedTab) {
-                0 -> KeyValueInput(queryParams, keyLabel = "Parameter")
-                1 -> KeyValueInput(headers, keyLabel = "Header")
-                2 -> BodyInput(body, bodyType, onBodyChange = { body = it }, onBodyTypeChange = { bodyType = it })
+        }
+        is ApiResult.Error -> {
+            Column {
+                 Text("Error: ${result.message}", color = Color.Red)
             }
         }
+    }
+}
+
+@Composable
+fun FormattedBody(data: String, contentType: String) {
+    val prettyJson = if (contentType.contains("json", ignoreCase = true)) {
+        try {
+            val gson = GsonBuilder().setPrettyPrinting().create()
+            gson.toJson(JsonParser.parseString(data))
+        } catch (e: JsonSyntaxException) {
+            data // Not a valid json, return original data
+        } catch (e: Exception) {
+            data
+        }
+    } else {
+        data
+    }
+
+    val annotatedString = buildAnnotatedString {
+        if (contentType.contains("json", ignoreCase = true) && prettyJson != data) {
+            val regex = "\"([^\"]*)\":|(\"[^\"]*\")|([\\d.]+)|(\\[|\\]|\\{|\\})|(true|false)|(null)".toRegex()
+
+            val keyColor = Color(0xFF9876AA)
+            val stringColor = Color(0xFF6A8759)
+            val numberColor = Color(0xFF6897BB)
+            val keywordColor = Color(0xFFCC7832)
+
+            var lastIndex = 0
+            regex.findAll(prettyJson).forEach { matchResult ->
+                val startIndex = matchResult.range.first
+                val endIndex = matchResult.range.last + 1
+
+                if (startIndex > lastIndex) {
+                    append(prettyJson.substring(lastIndex, startIndex))
+                }
+
+                val (key, string, number, bracket, boolean, nullVal) = matchResult.destructured
+
+                val (text, style) = when {
+                    key.isNotEmpty() -> matchResult.value to SpanStyle(color = keyColor, fontWeight = FontWeight.Bold)
+                    string.isNotEmpty() -> matchResult.value to SpanStyle(color = stringColor)
+                    number.isNotEmpty() -> matchResult.value to SpanStyle(color = numberColor)
+                    boolean.isNotEmpty() -> matchResult.value to SpanStyle(color = keywordColor, fontWeight = FontWeight.Bold)
+                    nullVal.isNotEmpty() -> matchResult.value to SpanStyle(color = keywordColor, fontWeight = FontWeight.Bold)
+                    bracket.isNotEmpty() -> matchResult.value to SpanStyle(color = Color.Gray)
+                    else -> matchResult.value to SpanStyle()
+                }
+                withStyle(style) {
+                    append(text)
+                }
+                lastIndex = endIndex
+            }
+            if (lastIndex < prettyJson.length) {
+                append(prettyJson.substring(lastIndex))
+            }
+        } else {
+            append(prettyJson)
+        }
+    }
+
+    SelectionContainer {
+        Text(
+            text = annotatedString,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier.horizontalScroll(rememberScrollState())
+        )
     }
 }
 
@@ -200,7 +369,7 @@ fun BodyInput(body: String, bodyType: String, onBodyChange: (String) -> Unit, on
         value = body,
         onValueChange = onBodyChange,
         label = { Text("Request Body") },
-        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 200.dp)
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 150.dp)
     )
 }
 

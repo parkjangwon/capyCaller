@@ -14,6 +14,9 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -99,20 +102,32 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("addApi") {
+                        var apiResult by remember { mutableStateOf<ApiResult?>(null) }
                         ApiEditScreen(
                             apiItem = null,
+                            apiResult = apiResult,
                             onSave = { apiViewModel.addApi(it) },
-                            onExecute = { executeApi(it) },
+                            onExecute = { apiItem ->
+                                lifecycleScope.launch {
+                                    apiResult = apiCaller.call(apiItem)
+                                }
+                            },
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
                     composable("editApi/{apiId}") { backStackEntry ->
                         val apiId = backStackEntry.arguments?.getString("apiId")
                         val apiItem = apiViewModel.getApiItem(apiId)
+                        var apiResult by remember { mutableStateOf<ApiResult?>(null) }
                         ApiEditScreen(
                             apiItem = apiItem,
+                            apiResult = apiResult,
                             onSave = { apiViewModel.updateApi(it) },
-                            onExecute = { executeApi(it) },
+                            onExecute = { apiItem ->
+                                lifecycleScope.launch {
+                                    apiResult = apiCaller.call(apiItem)
+                                }
+                            },
                             onNavigateBack = { navController.popBackStack() }
                         )
                     }
@@ -171,17 +186,6 @@ class MainActivity : ComponentActivity() {
                 PackageManager.PERMISSION_GRANTED) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-        }
-    }
-
-    private fun executeApi(apiItem: ApiItem) {
-        lifecycleScope.launch {
-            val result = apiCaller.call(apiItem)
-            val message = when (result) {
-                is ApiResult.Success -> result.data
-                is ApiResult.Error -> result.message
-            }
-            Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
         }
     }
 
