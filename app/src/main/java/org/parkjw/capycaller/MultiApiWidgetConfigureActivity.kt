@@ -37,72 +37,94 @@ import kotlinx.coroutines.launch
 import org.parkjw.capycaller.data.ApiRepository
 import org.parkjw.capycaller.ui.theme.CapyCallerTheme
 
+/**
+ * 다중 API 위젯을 설정하는 액티비티입니다.
+ * 사용자가 홈 화면에 위젯을 추가할 때 실행되며, 위젯에 표시할 API 목록을 선택할 수 있게 합니다.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 class MultiApiWidgetConfigureActivity : ComponentActivity() {
 
+    // 설정 중인 위젯의 고유 ID. 이 ID로 위젯을 식별하고 관리합니다.
     private var appWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID
+    // 위젯에 추가할 수 있는 API의 최대 개수
     private val maxSelectionCount = 20
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // 사용자가 설정을 완료하지 않고 뒤로가기 등으로 종료할 경우를 대비해 기본 결과값을 CANCELED로 설정합니다.
         setResult(RESULT_CANCELED)
 
+        // 인텐트에서 위젯 ID를 가져옵니다.
         intent.extras?.let {
             appWidgetId = it.getInt(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
         }
 
+        // 유효한 위젯 ID가 없으면 액티비티를 즉시 종료합니다.
         if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) {
             finish()
             return
         }
 
+        // 리포지토리에서 전체 API 목록을 가져옵니다.
         val repository = ApiRepository(this)
         val apiItems = repository.getApiItems()
 
+        // Jetpack Compose로 UI를 구성합니다.
         setContent {
             CapyCallerTheme {
+                // 선택된 API들의 ID를 저장하는 상태 변수입니다.
                 val selectedApiIds = remember { mutableStateOf(emptySet<String>()) }
+                // 코루틴 스코프 (Snackbar 표시에 사용)
                 val scope = rememberCoroutineScope()
+                // Snackbar의 상태를 관리하는 호스트
                 val snackbarHostState = remember { SnackbarHostState() }
 
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         TopAppBar(
-                            title = { Text("Select APIs (Max $maxSelectionCount)") },
+                            title = { Text("API 선택 (최대 $maxSelectionCount 개)") },
                             actions = {
+                                // "전체 선택" 버튼
                                 TextButton(onClick = {
+                                    // 최대 선택 개수만큼 모든 API의 ID를 가져와 선택 상태로 설정합니다.
                                     val allIds = apiItems.map { it.id }.take(maxSelectionCount)
                                     selectedApiIds.value = allIds.toSet()
                                 }) {
-                                    Text("Select All")
+                                    Text("전체 선택")
                                 }
                             }
                         )
                     },
                     floatingActionButton = {
+                        // 저장 버튼 (FAB)
                         FloatingActionButton(onClick = {
+                            // 현재 선택된 API ID 목록을 저장합니다.
                             saveSelection(selectedApiIds.value)
                         }) {
-                            Icon(Icons.Filled.Done, contentDescription = "Save")
+                            Icon(Icons.Filled.Done, contentDescription = "저장")
                         }
                     }
                 ) { paddingValues ->
+                    // 스크롤 가능한 API 목록
                     LazyColumn(modifier = Modifier.padding(paddingValues)) {
                         items(apiItems) { apiItem ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
+                                    .clickable { // 행 전체를 클릭 가능하게 만듭니다.
                                         val currentSelection = selectedApiIds.value
                                         if (apiItem.id in currentSelection) {
+                                            // 이미 선택된 항목이면 선택 해제합니다.
                                             selectedApiIds.value = currentSelection - apiItem.id
                                         } else if (currentSelection.size < maxSelectionCount) {
+                                            // 최대 선택 개수에 도달하지 않았으면 선택 목록에 추가합니다.
                                             selectedApiIds.value = currentSelection + apiItem.id
                                         } else {
+                                            // 최대 선택 개수에 도달했으면 사용자에게 알립니다.
                                             scope.launch {
-                                                snackbarHostState.showSnackbar("You can select up to $maxSelectionCount APIs.")
+                                                snackbarHostState.showSnackbar("최대 $maxSelectionCount 개의 API만 선택할 수 있습니다.")
                                             }
                                         }
                                     }
@@ -110,15 +132,16 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Checkbox(
-                                    checked = apiItem.id in selectedApiIds.value,
+                                    checked = apiItem.id in selectedApiIds.value, // 체크박스 상태를 선택 여부와 동기화합니다.
                                     onCheckedChange = { isChecked ->
                                         val currentSelection = selectedApiIds.value
                                         if (isChecked) {
                                             if (currentSelection.size < maxSelectionCount) {
                                                 selectedApiIds.value = currentSelection + apiItem.id
                                             } else {
+                                                // 체크박스를 통해 최대 개수를 초과하려고 할 때도 알려줍니다.
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar("You can select up to $maxSelectionCount APIs.")
+                                                    snackbarHostState.showSnackbar("최대 $maxSelectionCount 개의 API만 선택할 수 있습니다.")
                                                 }
                                             }
                                         } else {
@@ -127,7 +150,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                                     }
                                 )
                                 Spacer(Modifier.width(16.dp))
-                                Text(apiItem.name)
+                                Text(apiItem.name) // API 이름 표시
                             }
                         }
                     }
@@ -136,19 +159,27 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * 사용자가 선택한 API 목록을 저장하고 위젯을 업데이트합니다.
+     * @param selectedApiIds 사용자가 선택한 API들의 ID 집합.
+     */
     private fun saveSelection(selectedApiIds: Set<String>) {
         val context = applicationContext
+        // SharedPreferences를 사용하여 위젯 ID별로 선택된 API ID 목록을 저장합니다.
         val prefs = context.getSharedPreferences("widget_prefs", MODE_PRIVATE).edit()
         prefs.putString("widget_multi_$appWidgetId", selectedApiIds.joinToString(","))
         prefs.apply()
 
+        // 위젯 관리자를 통해 해당 위젯의 UI를 업데이트하도록 요청합니다.
         val appWidgetManager = AppWidgetManager.getInstance(context)
         ApiWidgetProvider.updateAppWidget(context, appWidgetManager, appWidgetId)
 
+        // 위젯 설정이 성공적으로 완료되었음을 알리는 결과값을 설정합니다.
         val resultValue = Intent().apply {
             putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
         }
         setResult(Activity.RESULT_OK, resultValue)
+        // 설정 액티비티를 종료합니다.
         finish()
     }
 }
