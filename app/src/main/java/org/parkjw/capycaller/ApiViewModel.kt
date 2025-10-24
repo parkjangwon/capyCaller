@@ -91,7 +91,7 @@ class ApiViewModel(application: Application) : AndroidViewModel(application) {
             // 바로가기 옵션이 새로 활성화된 경우
             if (apiItem.isShortcut && originalItem?.isShortcut == false) {
                 val maxShortcuts = ShortcutManagerCompat.getMaxShortcutCountPerActivity(getApplication())
-                val currentShortcutCount = _api_items.value.count { it.isShortcut }
+                val currentShortcutCount = _apiItems.value.count { it.isShortcut }
                 // 현재 바로가기 개수가 최대치에 도달했는지 확인
                 if (currentShortcutCount >= maxShortcuts) {
                     itemToSave = apiItem.copy(isShortcut = false) // 바로가기 옵션을 끈 상태로 저장
