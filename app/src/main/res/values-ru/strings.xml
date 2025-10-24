@@ -77,4 +77,10 @@
     <string name="copy_api">Копировать API</string>
     <string name="delete_api">Удалить API</string>
     <string name="tap_to_configure">Нажмите, чтобы настроить</string>
+
+    <string name="select_api_to_call">Выберите API для вызова</string>
+    <string name="select_apis_max">Выберите API (макс. %d)</string>
+    <string name="save">Сохранить</string>
+    <string name="max_selection_error">Вы можете выбрать не более %d API.</string>
+    <string name="api_not_found">API не найден.</string>
 </resources>

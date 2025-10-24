@@ -1,10 +1,12 @@
 package org.parkjw.capycaller
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.parkjw.capycaller.data.ApiRepository
 import org.parkjw.capycaller.data.ApiResult
 import org.parkjw.capycaller.data.ApiSettings
@@ -24,7 +26,7 @@ class TransparentActivity : ComponentActivity() {
         lifecycleScope.launch {
             try {
                 // UserDataStore를 통해 사용자 설정을 가져옵니다.
-                val userDataStore = UserDataStore(application)
+                val userDataStore = UserDataStore(applicationContext)
                 val usePushNotifications = userDataStore.getUsePushNotifications.first() // 푸시 알림 사용 여부 확인
 
                 // 인텐트 데이터를 분석하여 호출해야 할 API의 ID를 추출합니다.
@@ -37,22 +39,32 @@ class TransparentActivity : ComponentActivity() {
 
                 if (apiId != null) {
                     // 리포지토리에서 전체 API 목록을 가져옵니다.
-                    val repository = ApiRepository(application)
+                    val repository = ApiRepository(applicationContext)
                     // 추출한 ID와 일치하는 ApiItem을 찾습니다.
                     val apiItem = repository.getApiItems().find { it.id == apiId }
 
                     if (apiItem != null) {
-                        // API 호출을 위한 ApiCaller 인스턴스를 생성합니다. (기본 설정 사용)
-                        // TODO: 위젯/바로가기 호출 시에도 상세 설정을 적용하도록 개선 필요
-                        val apiCaller = ApiCaller(ApiSettings()) 
+                        // DataStore에서 API 설정을 비동기적으로 불러옵니다.
+                        val apiSettings = ApiSettings(
+                            ignoreSslErrors = userDataStore.getIgnoreSslErrors.first(),
+                            connectTimeout = userDataStore.getConnectTimeout.first(),
+                            readTimeout = userDataStore.getReadTimeout.first(),
+                            writeTimeout = userDataStore.getWriteTimeout.first(),
+                            baseUrl = userDataStore.getBaseUrl.first(),
+                            useCookieJar = userDataStore.getUseCookieJar.first(),
+                            sendNoCache = userDataStore.getSendNoCache.first(),
+                            followRedirects = userDataStore.getFollowRedirects.first()
+                        )
+                        // 불러온 설정으로 ApiCaller 인스턴스 생성
+                        val apiCaller = ApiCaller(apiSettings)
                         // API 호출을 실행합니다.
                         val result = apiCaller.call(apiItem)
-                        
+
                         // 푸시 알림 사용이 활성화된 경우에만 알림을 표시합니다.
                         if (usePushNotifications) {
                             val (title, content) = when (result) {
                                 is ApiResult.Success -> {
-                                    "실행 성공" to "API: ${apiItem.name}"
+                                    getString(R.string.execution_success) to "API: ${apiItem.name}"
                                 }
                                 is ApiResult.Error -> {
                                     val contentMessage = if (result.code != 0) {
@@ -60,7 +72,7 @@ class TransparentActivity : ComponentActivity() {
                                     } else {
                                         "API: ${apiItem.name}"
                                     }
-                                    "실행 실패" to contentMessage
+                                    getString(R.string.execution_fail) to contentMessage
                                 }
                             }
                             NotificationHelper.showNotification(applicationContext, title, content)
@@ -70,8 +82,8 @@ class TransparentActivity : ComponentActivity() {
                         if (usePushNotifications) {
                             NotificationHelper.showNotification(
                                 applicationContext,
-                                "실행 실패",
-                                "API를 찾을 수 없습니다."
+                                getString(R.string.execution_fail),
+                                getString(R.string.api_not_found)
                             )
                         }
                     }
@@ -82,5 +94,14 @@ class TransparentActivity : ComponentActivity() {
                 finish()
             }
         }
+    }
+
+    override fun attachBaseContext(newBase: android.content.Context) {
+        val language = runBlocking { UserDataStore(newBase).getLanguage.first() }
+        val locale = MainActivity.getLocaleFromLanguage(language)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
     }
 }

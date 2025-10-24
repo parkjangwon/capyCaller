@@ -82,4 +82,5 @@
     <string name="select_apis_max">APIを選択 (最大%d個)</string>
     <string name="save">保存</string>
     <string name="max_selection_error">最大%d個のAPIしか選択できません。</string>
+    <string name="api_not_found">APIが見つかりません。</string>
 </resources>

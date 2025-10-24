@@ -82,4 +82,5 @@
     <string name="select_apis_max">Select APIs (Max %d)</string>
     <string name="save">Save</string>
     <string name="max_selection_error">You can only select up to %d APIs.</string>
+    <string name="api_not_found">API not found.</string>
 </resources>

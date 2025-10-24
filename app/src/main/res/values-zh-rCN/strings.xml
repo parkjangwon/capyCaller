@@ -82,4 +82,5 @@
     <string name="select_apis_max">选择 API (最多 %d 个)</string>
     <string name="save">保存</string>
     <string name="max_selection_error">您最多只能选择 %d 个 API。</string>
+    <string name="api_not_found">找不到 API。</string>
 </resources>

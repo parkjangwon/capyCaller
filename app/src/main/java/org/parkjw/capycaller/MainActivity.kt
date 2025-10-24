@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -101,21 +102,32 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // 액티비티의 생명주기 스코프 내에서 코루틴을 실행
+        // API 설정을 감시하고 변경될 때마다 ApiCaller를 다시 생성합니다.
         lifecycleScope.launch {
-            // DataStore에서 API 설정을 비동기적으로 불러옴
-            val apiSettings = ApiSettings(
-                ignoreSslErrors = userDataStore.getIgnoreSslErrors.first(),
-                connectTimeout = userDataStore.getConnectTimeout.first(),
-                readTimeout = userDataStore.getReadTimeout.first(),
-                writeTimeout = userDataStore.getWriteTimeout.first(),
-                baseUrl = userDataStore.getBaseUrl.first(),
-                useCookieJar = userDataStore.getUseCookieJar.first(),
-                sendNoCache = userDataStore.getSendNoCache.first(),
-                followRedirects = userDataStore.getFollowRedirects.first()
+            val settingsFlows = listOf(
+                userDataStore.getIgnoreSslErrors,
+                userDataStore.getConnectTimeout,
+                userDataStore.getReadTimeout,
+                userDataStore.getWriteTimeout,
+                userDataStore.getBaseUrl,
+                userDataStore.getUseCookieJar,
+                userDataStore.getSendNoCache,
+                userDataStore.getFollowRedirects
             )
-            // 불러온 설정으로 ApiCaller 인스턴스 생성
-            apiCaller = ApiCaller(apiSettings)
+            combine(settingsFlows) { values ->
+                ApiSettings(
+                    ignoreSslErrors = values[0] as Boolean,
+                    connectTimeout = values[1] as Long,
+                    readTimeout = values[2] as Long,
+                    writeTimeout = values[3] as Long,
+                    baseUrl = values[4] as String,
+                    useCookieJar = values[5] as Boolean,
+                    sendNoCache = values[6] as Boolean,
+                    followRedirects = values[7] as Boolean
+                )
+            }.collect { settings ->
+                apiCaller = ApiCaller(settings)
+            }
         }
 
         // 뒤로가기 버튼 콜백 등록
