@@ -26,6 +26,7 @@ data class BackupData(
  * @property useCookieJar 쿠키 자동 관리(Cookie Jar) 사용 여부.
  * @property sendNoCache 캐시 비활성화(`no-cache`) 요청 헤더 전송 여부.
  * @property followRedirects 리다이렉트 자동 이동 여부.
+ * @property language 앱의 표시 언어 설정.
  */
 data class AllSettings(
     val theme: String,
@@ -37,5 +38,6 @@ data class AllSettings(
     val baseUrl: String,
     val useCookieJar: Boolean,
     val sendNoCache: Boolean,
-    val followRedirects: Boolean
+    val followRedirects: Boolean,
+    val language: String
 )

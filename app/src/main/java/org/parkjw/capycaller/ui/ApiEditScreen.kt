@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -42,6 +43,7 @@ import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.parkjw.capycaller.R
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
 import org.parkjw.capycaller.ui.theme.getHttpMethodColor
@@ -287,10 +289,10 @@ fun ApiEditScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (apiItem == null) "API 추가" else "API 수정") },
+                title = { Text(if (apiItem == null) stringResource(R.string.add_api) else stringResource(R.string.edit_api)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -298,9 +300,9 @@ fun ApiEditScreen(
                     IconButton(onClick = {
                         val curlCommand = toCurlCommand(buildApiItem())
                         clipboardManager.setText(AnnotatedString(curlCommand))
-                        Toast.makeText(context, "cURL로 복사되었습니다", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = "cURL로 복사")
+                        Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.copy_as_curl))
                     }
                 }
             )
@@ -318,7 +320,7 @@ fun ApiEditScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("API 이름") },
+                    label = { Text(stringResource(R.string.api_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
@@ -326,7 +328,7 @@ fun ApiEditScreen(
                 OutlinedTextField(
                     value = memo,
                     onValueChange = { memo = it },
-                    label = { Text("메모") },
+                    label = { Text(stringResource(R.string.memo)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(8.dp))
@@ -334,7 +336,7 @@ fun ApiEditScreen(
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("URL") },
+                    label = { Text(stringResource(R.string.url)) },
                     modifier = Modifier.fillMaxWidth(),
                     trailingIcon = {
                         // 실행 버튼
@@ -342,7 +344,7 @@ fun ApiEditScreen(
                             onExecute(buildApiItem())
                             selectedTab = 1 // 실행 후 응답 탭으로 자동 전환
                         }) {
-                            Icon(Icons.Filled.Send, contentDescription = "실행")
+                            Icon(Icons.Filled.Send, contentDescription = stringResource(R.string.execute))
                         }
                     },
                     placeholder = { Text(baseUrl) } // Base URL을 힌트로 표시
@@ -360,7 +362,7 @@ fun ApiEditScreen(
                         value = "",
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("메소드") },
+                        label = { Text(stringResource(R.string.method)) },
                         leadingIcon = {
                             Box(modifier = Modifier.padding(start = 8.dp)) {
                                 HttpMethodLabel(method = method) // 선택된 메소드를 색상 라벨로 표시
@@ -390,14 +392,14 @@ fun ApiEditScreen(
                 // 바로가기 추가 체크박스
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = isShortcut, onCheckedChange = { isShortcut = it })
-                    Text("바로가기에 추가")
+                    Text(stringResource(R.string.add_to_shortcut))
                 }
                 Spacer(Modifier.height(8.dp))
 
                 // 요청/응답 탭
                 TabRow(selectedTabIndex = selectedTab) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("요청") })
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("응답") })
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text(stringResource(R.string.request)) })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text(stringResource(R.string.response)) })
                 }
                 Spacer(Modifier.height(8.dp))
 
@@ -433,15 +435,15 @@ fun RequestTabs(
 
     Column {
         TabRow(selectedTabIndex = selectedTab) {
-            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("파라미터") })
-            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("헤더") })
-            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("본문") })
+            Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text(stringResource(R.string.parameters)) })
+            Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text(stringResource(R.string.headers)) })
+            Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text(stringResource(R.string.body)) })
         }
         Spacer(Modifier.height(8.dp))
 
         when (selectedTab) {
-            0 -> KeyValueInput(queryParams, keyLabel = "키")
-            1 -> KeyValueInput(headers, keyLabel = "키")
+            0 -> KeyValueInput(queryParams, keyLabel = stringResource(R.string.key), valueLabel = stringResource(R.string.value))
+            1 -> KeyValueInput(headers, keyLabel = stringResource(R.string.key), valueLabel = stringResource(R.string.value))
             2 -> BodyInput(body, bodyType, onBodyChange = onBodyChange, onBodyTypeChange = onBodyTypeChange)
         }
     }
@@ -457,7 +459,7 @@ fun ResponseTab(result: ApiResult?, apiName: String) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text("API를 실행하면 응답이 여기에 표시됩니다.")
+            Text(stringResource(R.string.response_will_be_displayed_here))
         }
         return
     }
@@ -471,13 +473,13 @@ fun ResponseTab(result: ApiResult?, apiName: String) {
 
             Column {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("상태: ${result.code}", fontWeight = FontWeight.Bold)
-                    Text("시간: ${result.time}ms", fontWeight = FontWeight.Bold)
+                    Text("${stringResource(R.string.status)}: ${result.code}", fontWeight = FontWeight.Bold)
+                    Text("${stringResource(R.string.time)}: ${result.time}ms", fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(8.dp))
                 TabRow(selectedTabIndex = selectedTab) {
-                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("본문") })
-                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("헤더") })
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text(stringResource(R.string.body)) })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text(stringResource(R.string.headers)) })
                 }
                 Spacer(Modifier.height(8.dp))
                 when (selectedTab) {
@@ -488,7 +490,7 @@ fun ResponseTab(result: ApiResult?, apiName: String) {
                             contentType = contentType,
                             onCopy = {
                                 clipboardManager.setText(AnnotatedString(it))
-                                Toast.makeText(context, "클립보드에 복사되었습니다", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
                             },
                             onShare = {
                                 val sendIntent = Intent().apply {
@@ -525,12 +527,12 @@ fun ResponseTab(result: ApiResult?, apiName: String) {
                                                 outputStream.write(content.toByteArray())
                                             }
                                             withContext(Dispatchers.Main) {
-                                                Toast.makeText(context, "다운로드 폴더에 저장되었습니다", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(context, R.string.download_complete, Toast.LENGTH_SHORT).show()
                                             }
-                                        } ?: throw IOException("MediaStore 레코드를 생성하지 못했습니다.")
+                                        } ?: throw IOException(context.getString(R.string.failed_to_create_mediastore_record))
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "다운로드 실패: ${e.message}", Toast.LENGTH_LONG).show()
+                                            Toast.makeText(context, "${context.getString(R.string.download_failed)}: ${e.message}", Toast.LENGTH_LONG).show()
                                         }
                                     }
                                 }
@@ -548,7 +550,7 @@ fun ResponseTab(result: ApiResult?, apiName: String) {
         }
         is ApiResult.Error -> {
             Column {
-                 Text("오류: ${result.message}", color = Color.Red)
+                 Text("${stringResource(R.string.error)}: ${result.message}", color = Color.Red)
             }
         }
     }
@@ -583,13 +585,13 @@ fun FormattedBody(
             horizontalArrangement = Arrangement.End
         ) {
             IconButton(onClick = { onCopy(prettyData) }) {
-                Icon(Icons.Filled.ContentCopy, contentDescription = "복사")
+                Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(R.string.copy))
             }
             IconButton(onClick = { onShare(prettyData) }) {
-                Icon(Icons.Filled.Share, contentDescription = "공유")
+                Icon(Icons.Filled.Share, contentDescription = stringResource(R.string.share))
             }
             IconButton(onClick = { onDownload(prettyData) }) {
-                Icon(Icons.Filled.Download, contentDescription = "다운로드")
+                Icon(Icons.Filled.Download, contentDescription = stringResource(R.string.download))
             }
         }
         // 텍스트를 선택하고 복사할 수 있도록 SelectionContainer 사용
@@ -619,7 +621,7 @@ fun BodyInput(body: String, bodyType: String, onBodyChange: (String) -> Unit, on
             value = bodyType,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Body 타입") },
+            label = { Text(stringResource(R.string.body_type)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bodyTypeMenuExpanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth()
         )
@@ -640,7 +642,7 @@ fun BodyInput(body: String, bodyType: String, onBodyChange: (String) -> Unit, on
     OutlinedTextField(
         value = body,
         onValueChange = onBodyChange,
-        label = { Text("요청 본문") },
+        label = { Text(stringResource(R.string.request_body)) },
         modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 150.dp),
         // 선택된 Body Type에 따라 구문 강조 적용
         visualTransformation = SyntaxHighlightingVisualTransformation(bodyType)

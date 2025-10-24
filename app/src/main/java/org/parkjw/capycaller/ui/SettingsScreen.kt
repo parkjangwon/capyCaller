@@ -3,9 +3,7 @@ package org.parkjw.capycaller.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -19,9 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.parkjw.capycaller.R
 
 /**
  * 앱의 다양한 설정을 변경할 수 있는 화면의 Composable 함수입니다.
@@ -38,10 +38,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("설정") },
+                title = { Text(stringResource(R.string.settings)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "뒤로가기")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -56,6 +56,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp) // 각 설정 섹션 사이의 간격
         ) {
             ThemeSettings(settingsViewModel)
+            LanguageSettings(settingsViewModel)
             NotificationSettings(settingsViewModel)
             ApiSettings(apiSettingsViewModel)
             BackupRestoreSettings(onBackupClick, onRestoreClick)
@@ -70,18 +71,22 @@ fun SettingsScreen(
 @Composable
 fun ThemeSettings(viewModel: SettingsViewModel) {
     var themeDropDownExpanded by remember { mutableStateOf(false) }
-    val themeOptions = listOf("System", "Light", "Dark")
+    val themeOptions = mapOf(
+        "System" to stringResource(R.string.system),
+        "Light" to stringResource(R.string.light),
+        "Dark" to stringResource(R.string.dark)
+    )
     val selectedTheme by viewModel.theme.collectAsState() // ViewModel로부터 현재 테마 상태를 구독
 
     Column {
-        Text("테마", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.theme), style = MaterialTheme.typography.titleMedium)
         ExposedDropdownMenuBox(
             expanded = themeDropDownExpanded,
             onExpandedChange = { themeDropDownExpanded = !themeDropDownExpanded },
             modifier = Modifier.fillMaxWidth()
         ) {
             OutlinedTextField(
-                value = selectedTheme,
+                value = themeOptions[selectedTheme] ?: selectedTheme,
                 onValueChange = {},
                 readOnly = true,
                 modifier = Modifier.menuAnchor().fillMaxWidth(),
@@ -91,12 +96,65 @@ fun ThemeSettings(viewModel: SettingsViewModel) {
                 expanded = themeDropDownExpanded,
                 onDismissRequest = { themeDropDownExpanded = false }
             ) {
-                themeOptions.forEach { theme ->
+                themeOptions.forEach { (key, value) ->
                     DropdownMenuItem(
-                        text = { Text(theme) },
+                        text = { Text(value) },
                         onClick = {
-                            viewModel.setTheme(theme) // 선택된 테마를 ViewModel에 저장
+                            viewModel.setTheme(key) // 선택된 테마를 ViewModel에 저장
                             themeDropDownExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 언어 설정을 위한 Composable 입니다.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LanguageSettings(viewModel: SettingsViewModel) {
+    var languageDropDownExpanded by remember { mutableStateOf(false) }
+    val languageOptions = listOf(
+        "English",
+        "Korean (한국어)",
+        "Japanese (日本語)",
+        "Simplified Chinese (简体中文)",
+        "Traditional Chinese (繁體中文)",
+        "Spanish (Español)",
+        "French (Français)",
+        "German (Deutsch)",
+        "Russian (Русский)",
+        "Portuguese (Português)"
+    )
+    val selectedLanguage by viewModel.language.collectAsState()
+
+    Column {
+        Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
+        ExposedDropdownMenuBox(
+            expanded = languageDropDownExpanded,
+            onExpandedChange = { languageDropDownExpanded = !languageDropDownExpanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = selectedLanguage,
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = languageDropDownExpanded) }
+            )
+            ExposedDropdownMenu(
+                expanded = languageDropDownExpanded,
+                onDismissRequest = { languageDropDownExpanded = false }
+            ) {
+                languageOptions.forEach { language ->
+                    DropdownMenuItem(
+                        text = { Text(language) },
+                        onClick = {
+                            viewModel.setLanguage(language)
+                            languageDropDownExpanded = false
                         }
                     )
                 }
@@ -113,13 +171,13 @@ fun NotificationSettings(viewModel: SettingsViewModel) {
     val usePushNotifications by viewModel.usePushNotifications.collectAsState()
 
     Column {
-        Text("알림", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.notifications), style = MaterialTheme.typography.titleMedium)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("푸시 알림 사용")
+            Text(stringResource(R.string.use_push_notifications))
             Switch(
                 checked = usePushNotifications,
                 onCheckedChange = { viewModel.setUsePushNotifications(it) } // 스위치 상태 변경 시 ViewModel에 저장
@@ -156,7 +214,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
     val focusManager = LocalFocusManager.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("API 설정", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.api_settings), style = MaterialTheme.typography.titleMedium)
 
         // SSL 오류 무시 스위치
         Row(
@@ -164,7 +222,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("SSL 인증서 오류 무시")
+            Text(stringResource(R.string.ignore_ssl_errors))
             Switch(
                 checked = ignoreSslErrors,
                 onCheckedChange = { viewModel.setIgnoreSslErrors(it) }
@@ -177,7 +235,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("쿠키 저장소 사용")
+            Text(stringResource(R.string.use_cookie_jar))
             Switch(
                 checked = useCookieJar,
                 onCheckedChange = { viewModel.setUseCookieJar(it) }
@@ -190,7 +248,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("no-cache 헤더 전송")
+            Text(stringResource(R.string.send_no_cache_header))
             Switch(
                 checked = sendNoCache,
                 onCheckedChange = { viewModel.setSendNoCache(it) }
@@ -203,7 +261,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("리다이렉트 자동 처리")
+            Text(stringResource(R.string.follow_redirects))
             Switch(
                 checked = followRedirects,
                 onCheckedChange = { viewModel.setFollowRedirects(it) }
@@ -214,7 +272,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
         OutlinedTextField(
             value = localBaseUrl,
             onValueChange = { localBaseUrl = it },
-            label = { Text("기본 URL") },
+            label = { Text(stringResource(R.string.base_url)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged {
@@ -230,7 +288,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
         OutlinedTextField(
             value = localConnectTimeout,
             onValueChange = { localConnectTimeout = it },
-            label = { Text("연결 타임아웃 (초)") },
+            label = { Text(stringResource(R.string.connect_timeout_seconds)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), // 숫자 키보드
             modifier = Modifier
                 .fillMaxWidth()
@@ -247,7 +305,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
         OutlinedTextField(
             value = localReadTimeout,
             onValueChange = { localReadTimeout = it },
-            label = { Text("읽기 타임아웃 (초)") },
+            label = { Text(stringResource(R.string.read_timeout_seconds)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier
                 .fillMaxWidth()
@@ -263,7 +321,7 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
         OutlinedTextField(
             value = localWriteTimeout,
             onValueChange = { localWriteTimeout = it },
-            label = { Text("쓰기 타임아웃 (초)") },
+            label = { Text(stringResource(R.string.write_timeout_seconds)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier
                 .fillMaxWidth()
@@ -283,13 +341,13 @@ fun ApiSettings(viewModel: ApiSettingsViewModel) {
 @Composable
 fun BackupRestoreSettings(onBackupClick: () -> Unit, onRestoreClick: () -> Unit) {
     Column {
-        Text("데이터 백업 & 복원", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.data_backup_restore), style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onBackupClick) {
-                Text("백업")
+                Text(stringResource(R.string.backup))
             }
             Button(onClick = onRestoreClick) {
-                Text("복원")
+                Text(stringResource(R.string.restore))
             }
         }
     }

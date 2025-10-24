@@ -1,7 +1,10 @@
 package org.parkjw.capycaller
 
 import android.Manifest
+import android.app.Application
+import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -26,6 +30,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.parkjw.capycaller.data.AllSettings
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiResult
@@ -66,7 +71,7 @@ class MainActivity : ComponentActivity() {
     ) { isGranted: Boolean ->
         if (!isGranted) {
             // 권한이 거부되면 사용자에게 알림
-            Toast.makeText(this, "알림 권한이 없으면 실행 상태를 표시할 수 없습니다.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.notification_permission_denied, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -85,7 +90,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // UserDataStore 인스턴스 초기화
-        userDataStore = UserDataStore(application)
+        userDataStore = UserDataStore(applicationContext)
+
+        // 언어 설정 감시 및 적용
+        lifecycleScope.launch {
+            userDataStore.getLanguage.collect { language ->
+                if (getLocaleFromLanguage(language).language != resources.configuration.locales[0].language) {
+                    recreate()
+                }
+            }
+        }
 
         // 액티비티의 생명주기 스코프 내에서 코루틴을 실행
         lifecycleScope.launch {
@@ -111,7 +125,7 @@ class MainActivity : ComponentActivity() {
                 if (backPressedTime + 2000 > System.currentTimeMillis()) {
                     finish()
                 } else {
-                    Toast.makeText(this@MainActivity, "한 번 더 누르면 종료됩니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, R.string.press_again_to_exit, Toast.LENGTH_SHORT).show()
                 }
                 backPressedTime = System.currentTimeMillis()
             }
@@ -127,8 +141,8 @@ class MainActivity : ComponentActivity() {
             if (restoreUri != null) {
                 AlertDialog(
                     onDismissRequest = { restoreUri = null },
-                    title = { Text("복원 확인") },
-                    text = { Text("정말로 복원하시겠습니까? 현재의 API 목록과 설정이 덮어씌워집니다.") },
+                    title = { Text(stringResource(R.string.restore_confirm_title)) },
+                    text = { Text(stringResource(R.string.restore_confirm_message)) },
                     confirmButton = {
                         TextButton(
                             onClick = {
@@ -136,12 +150,12 @@ class MainActivity : ComponentActivity() {
                                 restoreUri = null
                             }
                         ) {
-                            Text("확인")
+                            Text(stringResource(R.string.ok))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { restoreUri = null }) { // "취소" 클릭 시 대화상자 닫기
-                            Text("취소")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -255,7 +269,8 @@ class MainActivity : ComponentActivity() {
                     baseUrl = userDataStore.getBaseUrl.first(),
                     useCookieJar = userDataStore.getUseCookieJar.first(),
                     sendNoCache = userDataStore.getSendNoCache.first(),
-                    followRedirects = userDataStore.getFollowRedirects.first()
+                    followRedirects = userDataStore.getFollowRedirects.first(),
+                    language = userDataStore.getLanguage.first()
                 )
                 // API 목록과 설정을 포함하는 BackupData 객체 생성
                 val backupData = BackupData(
@@ -268,9 +283,9 @@ class MainActivity : ComponentActivity() {
                 contentResolver.openOutputStream(uri)?.use {
                     it.write(json.toByteArray())
                 }
-                Toast.makeText(this@MainActivity, "백업 성공", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, R.string.backup_success, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "백업 실패: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "${getString(R.string.backup_fail)}: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -302,11 +317,12 @@ class MainActivity : ComponentActivity() {
                     userDataStore.setUseCookieJar(backupData.settings.useCookieJar)
                     userDataStore.setSendNoCache(backupData.settings.sendNoCache)
                     userDataStore.setFollowRedirects(backupData.settings.followRedirects)
+                    userDataStore.setLanguage(backupData.settings.language)
 
-                    Toast.makeText(this@MainActivity, "복원 성공", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, R.string.restore_success, Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@MainActivity, "복원 실패: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "${getString(R.string.restore_fail)}: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -336,12 +352,38 @@ class MainActivity : ComponentActivity() {
                 val result = apiCaller.call(apiItem)
                 // 호출 결과에 따라 알림 제목과 내용을 결정
                 val (title, content) = when (result) {
-                    is ApiResult.Success -> "실행 성공" to "API: ${apiItem.name}"
-                    is ApiResult.Error -> "실행 실패" to "API: ${apiItem.name} (코드: ${result.code})"
+                    is ApiResult.Success -> getString(R.string.execution_success) to "API: ${apiItem.name}"
+                    is ApiResult.Error -> getString(R.string.execution_fail) to "API: ${apiItem.name} (코드: ${result.code})"
                 }
                 // NotificationHelper를 사용하여 알림 표시
                 NotificationHelper.showNotification(applicationContext, title, content)
             }
         }
+    }
+
+    companion object {
+        fun getLocaleFromLanguage(language: String): Locale {
+            return when (language) {
+                "Korean (한국어)" -> Locale("ko")
+                "Japanese (日本語)" -> Locale("ja")
+                "Simplified Chinese (简体中文)" -> Locale.SIMPLIFIED_CHINESE
+                "Traditional Chinese (繁體中文)" -> Locale.TRADITIONAL_CHINESE
+                "Spanish (Español)" -> Locale("es")
+                "French (Français)" -> Locale("fr")
+                "German (Deutsch)" -> Locale("de")
+                "Russian (Русский)" -> Locale("ru")
+                "Portuguese (Português)" -> Locale("pt")
+                else -> Locale.ENGLISH
+            }
+        }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val language = runBlocking { UserDataStore(newBase).getLanguage.first() }
+        val locale = getLocaleFromLanguage(language)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
     }
 }

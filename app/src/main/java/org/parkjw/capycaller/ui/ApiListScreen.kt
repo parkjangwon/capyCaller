@@ -39,7 +39,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import org.parkjw.capycaller.R
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.ui.theme.getHttpMethodColor
 
@@ -70,6 +73,7 @@ fun ApiListScreen(
     var confirmDialogTitle by remember { mutableStateOf("") }
     // 확인 대화상자의 내용
     var confirmDialogText by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     // 확인 대화상자 Composable
     if (showConfirmDialog) {
@@ -84,12 +88,12 @@ fun ApiListScreen(
                         showConfirmDialog = false
                     }
                 ) {
-                    Text("확인")
+                    Text(stringResource(R.string.ok))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("취소")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -115,22 +119,22 @@ fun ApiListScreen(
             if (isInSelectionMode) {
                 // 다중 선택 모드 TopAppBar
                 TopAppBar(
-                    title = { Text("${selectedApiIds.size}개 선택됨") },
+                    title = { Text(stringResource(R.string.selected_items, selectedApiIds.size)) },
                     navigationIcon = {
                         // 선택 해제 버튼
                         IconButton(onClick = { selectedApiIds = emptySet() }) {
-                            Icon(Icons.Default.Close, contentDescription = "선택 해제")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.unselect))
                         }
                     },
                     actions = {
                         // 전체 선택 버튼
                         IconButton(onClick = { selectedApiIds = apiItems.map { it.id }.toSet() }) {
-                            Icon(Icons.Default.SelectAll, contentDescription = "전체 선택")
+                            Icon(Icons.Default.SelectAll, contentDescription = stringResource(R.string.select_all))
                         }
                         // 선택 항목 실행 버튼
                         IconButton(onClick = {
-                            confirmDialogTitle = "API 실행"
-                            confirmDialogText = "선택한 ${selectedApiIds.size}개의 API를 실행하시겠습니까?"
+                            confirmDialogTitle = context.getString(R.string.execute_api)
+                            confirmDialogText = context.getString(R.string.execute_api_confirm, selectedApiIds.size)
                             confirmAction = {
                                 val selectedItems = apiItems.filter { it.id in selectedApiIds }
                                 onExecuteApis(selectedItems)
@@ -138,13 +142,13 @@ fun ApiListScreen(
                             }
                             showConfirmDialog = true
                         }) {
-                            Icon(Icons.Default.Send, contentDescription = "선택 항목 실행")
+                            Icon(Icons.Default.Send, contentDescription = stringResource(R.string.execute_selected))
                         }
                         // 선택 항목 복사 버튼 (1개 선택 시에만 활성화)
                         IconButton(
                             onClick = {
-                                confirmDialogTitle = "API 복사"
-                                confirmDialogText = "이 API를 복사하시겠습니까?"
+                                confirmDialogTitle = context.getString(R.string.copy_api)
+                                confirmDialogText = context.getString(R.string.copy_api_confirm)
                                 confirmAction = {
                                     val selectedItem = apiItems.find { it.id == selectedApiIds.first() }
                                     if (selectedItem != null) {
@@ -156,12 +160,12 @@ fun ApiListScreen(
                             },
                             enabled = selectedApiIds.size == 1
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "선택 항목 복사")
+                            Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.copy_selected))
                         }
                         // 선택 항목 삭제 버튼
                         IconButton(onClick = {
-                            confirmDialogTitle = "API 삭제"
-                            confirmDialogText = "선택한 ${selectedApiIds.size}개의 API를 삭제하시겠습니까?"
+                            confirmDialogTitle = context.getString(R.string.delete_api)
+                            confirmDialogText = context.getString(R.string.delete_api_confirm, selectedApiIds.size)
                             confirmAction = {
                                 val selectedItems = apiItems.filter { it.id in selectedApiIds }
                                 onDeleteApis(selectedItems)
@@ -169,17 +173,17 @@ fun ApiListScreen(
                             }
                             showConfirmDialog = true
                         }) {
-                            Icon(Icons.Default.Delete, contentDescription = "선택 항목 삭제")
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete_selected))
                         }
                     }
                 )
             } else {
                 // 일반 모드 TopAppBar
                 TopAppBar(
-                    title = { Text("CapyCaller") },
+                    title = { Text(stringResource(R.string.app_name)) },
                     actions = {
                         IconButton(onClick = onSettingsClick) {
-                            Icon(Icons.Filled.Settings, contentDescription = "설정")
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
                         }
                     }
                 )
@@ -189,7 +193,7 @@ fun ApiListScreen(
             // 다중 선택 모드가 아닐 때만 API 추가 버튼을 표시합니다.
             if (!isInSelectionMode) {
                 FloatingActionButton(onClick = onAddApi) {
-                    Icon(Icons.Filled.Add, contentDescription = "API 추가")
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_api))
                 }
             }
         }

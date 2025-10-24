@@ -55,4 +55,23 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             userDataStore.setUsePushNotifications(usePushNotifications)
         }
     }
+
+    /**
+     * 현재 설정된 언어 값을 UI에 노출하는 StateFlow 입니다.
+     */
+    val language: StateFlow<String> = userDataStore.getLanguage.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = "English" // 초기값
+    )
+
+    /**
+     * 사용자가 선택한 언어를 DataStore에 저장합니다.
+     * @param language 저장할 언어 이름 (예: "English", "Korean").
+     */
+    fun setLanguage(language: String) {
+        viewModelScope.launch {
+            userDataStore.setLanguage(language)
+        }
+    }
 }
