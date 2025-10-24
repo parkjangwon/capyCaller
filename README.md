@@ -29,6 +29,7 @@ CapyCaller is a simple yet powerful API client for Android that allows you to ma
     - **Expert API Settings**: Configure options like SSL certificate validation, timeouts, Base URL, cookie handling, and caching behavior.
     - **Full Backup & Restore**: Backup and restore all your APIs and application settings to a single file.
 - **Multi-Select Operations**: Long-press an item to enter multi-select mode. Confirmation dialogs prevent accidental execution or deletion of multiple APIs.
+- **Multi-language Support**: The app is available in multiple languages, including English, Korean, Japanese, Simplified Chinese, Traditional Chinese, Spanish, French, German, Russian, and Portuguese. The language can be changed in the settings.
 
 ## Getting Started
 
