@@ -76,4 +76,10 @@
     <string name="execute_api">APIを実行</string>
     <string name="copy_api">APIをコピー</string>
     <string name="delete_api">APIを削除</string>
+    <string name="tap_to_configure">タップして設定</string>
+
+    <string name="select_api_to_call">呼び出すAPIを選択</string>
+    <string name="select_apis_max">APIを選択 (最大%d個)</string>
+    <string name="save">保存</string>
+    <string name="max_selection_error">最大%d個のAPIしか選択できません。</string>
 </resources>

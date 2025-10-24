@@ -76,4 +76,10 @@
     <string name="execute_api">Execute API</string>
     <string name="copy_api">Copy API</string>
     <string name="delete_api">Delete API</string>
+    <string name="tap_to_configure">Tap to configure</string>
+
+    <string name="select_api_to_call">Select API to call</string>
+    <string name="select_apis_max">Select APIs (Max %d)</string>
+    <string name="save">Save</string>
+    <string name="max_selection_error">You can only select up to %d APIs.</string>
 </resources>

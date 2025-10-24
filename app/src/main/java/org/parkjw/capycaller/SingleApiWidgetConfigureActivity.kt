@@ -1,10 +1,11 @@
-
 package org.parkjw.capycaller
 
 import android.app.Activity
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.widget.RemoteViews
@@ -21,9 +22,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.parkjw.capycaller.data.ApiItem
 import org.parkjw.capycaller.data.ApiRepository
+import org.parkjw.capycaller.data.UserDataStore
 import org.parkjw.capycaller.ui.theme.CapyCallerTheme
 
 /**
@@ -62,7 +67,7 @@ class SingleApiWidgetConfigureActivity : ComponentActivity() {
             CapyCallerTheme {
                 Scaffold(
                     topBar = {
-                        TopAppBar(title = { Text("호출할 API 선택") })
+                        TopAppBar(title = { Text(stringResource(R.string.select_api_to_call)) })
                     }
                 ) { paddingValues ->
                     // 스크롤 가능한 API 목록을 표시합니다.
@@ -127,5 +132,14 @@ class SingleApiWidgetConfigureActivity : ComponentActivity() {
         setResult(Activity.RESULT_OK, resultValue)
         // 설정 액티비티를 종료합니다.
         finish()
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val language = runBlocking { UserDataStore(newBase).getLanguage.first() }
+        val locale = MainActivity.getLocaleFromLanguage(language)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
     }
 }

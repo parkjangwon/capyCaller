@@ -1,9 +1,10 @@
-
 package org.parkjw.capycaller
 
 import android.app.Activity
 import android.appwidget.AppWidgetManager
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,9 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.parkjw.capycaller.data.ApiRepository
+import org.parkjw.capycaller.data.UserDataStore
 import org.parkjw.capycaller.ui.theme.CapyCallerTheme
 
 /**
@@ -84,7 +89,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                     snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         TopAppBar(
-                            title = { Text("API 선택 (최대 $maxSelectionCount 개)") },
+                            title = { Text(stringResource(R.string.select_apis_max, maxSelectionCount)) },
                             actions = {
                                 // "전체 선택" 버튼
                                 TextButton(onClick = {
@@ -92,7 +97,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                                     val allIds = apiItems.map { it.id }.take(maxSelectionCount)
                                     selectedApiIds.value = allIds.toSet()
                                 }) {
-                                    Text("전체 선택")
+                                    Text(stringResource(R.string.select_all))
                                 }
                             }
                         )
@@ -103,7 +108,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                             // 현재 선택된 API ID 목록을 저장합니다.
                             saveSelection(selectedApiIds.value)
                         }) {
-                            Icon(Icons.Filled.Done, contentDescription = "저장")
+                            Icon(Icons.Filled.Done, contentDescription = stringResource(R.string.save))
                         }
                     }
                 ) { paddingValues ->
@@ -124,7 +129,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                                         } else {
                                             // 최대 선택 개수에 도달했으면 사용자에게 알립니다.
                                             scope.launch {
-                                                snackbarHostState.showSnackbar("최대 $maxSelectionCount 개의 API만 선택할 수 있습니다.")
+                                                snackbarHostState.showSnackbar(getString(R.string.max_selection_error, maxSelectionCount))
                                             }
                                         }
                                     }
@@ -141,7 +146,7 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
                                             } else {
                                                 // 체크박스를 통해 최대 개수를 초과하려고 할 때도 알려줍니다.
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar("최대 $maxSelectionCount 개의 API만 선택할 수 있습니다.")
+                                                    snackbarHostState.showSnackbar(getString(R.string.max_selection_error, maxSelectionCount))
                                                 }
                                             }
                                         } else {
@@ -181,5 +186,14 @@ class MultiApiWidgetConfigureActivity : ComponentActivity() {
         setResult(Activity.RESULT_OK, resultValue)
         // 설정 액티비티를 종료합니다.
         finish()
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val language = runBlocking { UserDataStore(newBase).getLanguage.first() }
+        val locale = MainActivity.getLocaleFromLanguage(language)
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(locale)
+        val context = newBase.createConfigurationContext(config)
+        super.attachBaseContext(context)
     }
 }

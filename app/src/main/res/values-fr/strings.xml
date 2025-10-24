@@ -76,4 +76,5 @@
     <string name="execute_api">Exécuter l\'API</string>
     <string name="copy_api">Copier l\'API</string>
     <string name="delete_api">Supprimer l\'API</string>
+    <string name="tap_to_configure">Appuyez pour configurer</string>
 </resources>
